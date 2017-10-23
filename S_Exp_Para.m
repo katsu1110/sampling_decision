@@ -82,14 +82,17 @@ switch mode
     case 'paper-2AFC-PK'
         P.G.dimension_X = 1024;
         P.G.dimension_G = 256;
-        P.G.delta = 80;
+%         P.G.delta = 80;
+        P.G.delta = 0.01;
         P.G.tauStyle = 1;
-        P.G.sigmaStyle = 1e-10;
+%         P.G.sigmaStyle = 1e-10;
 
-        P.S.number_repetitions = 16;
+%         P.S.number_repetitions = 16;
+        P.S.number_repetitions = 100;
 
-        P.I.stimulus_regime='dynamic-switching-signal-blocked';
-        P.I.n_zero_signal = 50;
+%         P.I.stimulus_regime='dynamic-switching-signal-blocked';
+        P.I.stimulus_regime='dynamic-switching-signal';
+%         P.I.n_zero_signal = 50;
         
     case 'test-2AFC-corr'
         P.G.dimension_X = 128;
