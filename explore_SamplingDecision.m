@@ -1,36 +1,35 @@
 function explore_SamplingDecision(out)
 
-% how consistent the dynamic stimuli are across neurons?
-s = size(out.Signal);
-ntr = s(1);
-nneuron = s(2);
-% nneuron = 1;
-n_frames = s(3);
-disp([num2str(ntr) ' trials, ' num2str(nneuron) ' neurons, ' num2str(n_frames) ' n_frames'])
-
-stm = nan(nneuron, n_frames);
-for n = 1:nneuron
-    for f = 1:n_frames
-        stm(n,f) = out.Signal(1, n, f);
-    end
-end
-
-close all;
-imagesc(stm)
-xlabel('frames')
-ylabel('neurons')
-colorbar
-
-% out = out_pk;
+% % how consistent the dynamic stimuli are across neurons?
+% s = size(out.Signal);
+% ntr = s(1);
+% nneuron = s(2);
+% % nneuron = 1;
+% n_frames = s(3);
+% disp([num2str(ntr) ' trials, ' num2str(nneuron) ' neurons, ' num2str(n_frames) ' n_frames'])
 % 
-% % what is 'O'? Orientation, or the stimulus, right?
-% v = nan(1, 16);
-% for i = 1:16
-%     v(i) = out.O(i,1,1);
+% stm = nan(nneuron, n_frames);
+% for n = 1:nneuron
+%     for f = 1:n_frames
+%         stm(n,f) = out.Signal(1, n, f);
+%     end
 % end
 % 
-% figure;
-% plot(v)
+% close all;
+% imagesc(stm)
+% xlabel('frames')
+% ylabel('neurons')
+% colorbar
+
+
+% what is 'O'? Orientation, or the stimulus, right?
+v = nan(1, 100);
+for i = 1:100
+    v(i) = out.O(60,2,i);
+end
+
+figure;
+plot(v)
 % 
 % % So the third dimension is "choice"
 % 
