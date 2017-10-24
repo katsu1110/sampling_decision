@@ -36,6 +36,7 @@ for n = 1:nneuron
     ch = ch - 1;
     conf = conf(:,end);
     med = median(conf);    
+% med = 0.975;
 
     % discritize stimuli
     q = nan(1,lenv-1);
