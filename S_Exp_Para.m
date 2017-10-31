@@ -83,16 +83,26 @@ switch mode
         P.G.dimension_X = 1024;
         P.G.dimension_G = 256;
 %         P.G.delta = 80;
-        P.G.delta = 0.01;
-        P.G.tauStyle = 1;
+%         P.G.tauStyle = 1;
 %         P.G.sigmaStyle = 1e-10;
 
-%         P.S.number_repetitions = 16;
-        P.S.number_repetitions = 100;
+        P.S.number_repetitions = 16;
+        P.I.stimulus_regime='dynamic-switching-signal-blocked';
+%         P.I.stimulus_regime='dynamic-switching-signal';
+        P.I.n_zero_signal = 50;
+        
+    case 'paper-2AFC-PKamp'
+        P.G.prior_task = [1 0]; % [cardinal, oblique]
+        
+        P.G.dimension_X = 1024;
+        P.G.dimension_G = 256;
 
-%         P.I.stimulus_regime='dynamic-switching-signal-blocked';
-        P.I.stimulus_regime='dynamic-switching-signal';
-%         P.I.n_zero_signal = 50;
+        P.S.number_repetitions = 1000;        
+        P.I.stimulus_regime='dynamic-switching-signal-blocked';
+        P.I.stimulus_contrast = ones(P.G.number_locations, P.G.number_orientations);
+        P.I.n_zero_signal = 10;
+        P.G.number_samples_per_evidence = 15;
+        P.S.n_samples = 100;
         
     case 'test-2AFC-corr'
         P.G.dimension_X = 128;
