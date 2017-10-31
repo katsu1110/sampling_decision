@@ -1,138 +1,136 @@
-function [pk] = Kernel_Compute(out)
+function Kernel_Compute(E)
+
+close all;
 
 % yellow and green
 y = [0.9576    0.7285    0.2285];
 g = [0.1059    0.4706    0.2157];
 
 % basic info
-s = size(out.Signal);
-ntr = s(1);
-nneuron = s(2);
-% nneuron = 1;
-n_frames = s(3);
-disp([num2str(ntr) ' trials, ' num2str(nneuron) ' neurons, ' num2str(n_frames) ' n_frames'])
+s = size(E.G);
+n0S = E.InputImage.n_zero_signal;
 
-% initialization
-nbin = 4;
-% v = [1 0.5 0.25 0.125 0 -0.125 -0.25 -0.5 -1];
-v = [-0.3 -0.2 -0.1 0 0.1 0.2 0.3];
-lenv = length(v);
-tkernel = zeros(lenv, nbin);
-tkernel_h = zeros(lenv, nbin);
-tkernel_l = zeros(lenv, nbin);
-for n = 1:nneuron
-    hdxmat = zeros(ntr, n_frames);
-    ch = ones(ntr, n_frames);
-    conf = ones(ntr, n_frames);
-    for i = 1:ntr
-        for f = 1:n_frames
-            hdxmat(i,f) = out.Signal(i,n,f);
-            ch(i,f) = out.O(i,1,f);     
-            conf(i,f) = abs(out.O(i,2,f) - 0.5) + 0.5;
-        end
-    end
-
-    ch = ch(:,end);
-    ch = ch - 1;
-    conf = conf(:,end);
-    med = median(conf);    
-% med = 0.975;
-
-    % discritize stimuli
-    q = nan(1,lenv-1);
-    for i = 1:lenv-1
-        q(i) = quantile(hdxmat(:)', (1/lenv)*i);
-    end
-    
-    if n==1
-        disp(['far-ch tr: ' num2str(sum(ch==1)) ', near-ch tr: ' num2str(sum(ch==0))])
-        disp(['median confidence: ' num2str(med)])
-        disp(['quantiles: ' num2str(q)])
-    end
-    
-    hdxnew = zeros(size(hdxmat));
-    for i = 1:lenv
-        if i==1
-            range = hdxmat < q(1);
-        elseif i==lenv
-            range = hdxmat >= q(end);
-        else
-            range = hdxmat >= q(i-1) & hdxmat < q(i);
-        end
-
-        hdxnew(range) = v(i);
-    end
-    hdxmat = hdxnew;
-
-    % compute PK via difference in choice-triggered stimuli
-    tkernel_each = zeros(lenv, nbin);
-    tkernel_h_each = zeros(lenv, nbin);
-    tkernel_l_each= zeros(lenv, nbin);
-    frameperbin = floor(n_frames/nbin);
-    begin = 1;
-    for k = 1:nbin
-        tkernel_each(:,k) = getKernel(hdxmat(:, begin:begin+frameperbin-1), ch);
-        tkernel_h_each(:,k) = getKernel(hdxmat(conf > med, begin:begin+frameperbin-1), ch(conf > med));
-        tkernel_l_each(:,k) = getKernel(hdxmat(conf < med, begin:begin+frameperbin-1), ch(conf < med));
-        begin = begin + frameperbin;
-    end
-    
-    % sum up
-    tkernel = tkernel + tkernel_each;
-    tkernel_h = tkernel_h + tkernel_h_each;
-    tkernel_l = tkernel_l + tkernel_l_each;
-end
-
-% average across neurons
-tkernel = tkernel/nneuron;
-tkernel_h = tkernel_h/nneuron;
-tkernel_l = tkernel_l/nneuron;
-
-% PK amplitude
-pk0 = mean(tkernel, 2);
-pk0_h = mean(tkernel_h, 2);
-pk0_l = mean(tkernel_l, 2);
-pk = zeros(1, nbin);
-pk_h = zeros(1, nbin);
-pk_l = zeros(1, nbin);
-for n = 1:nbin
-    pk(n) = dot(tkernel(:,n), pk0);
-    pk_h(n) = dot(tkernel_h(:,n), pk0);
-    pk_l(n) = dot(tkernel_l(:,n), pk0);
-end
-
-% visualization
-close all;
+% log-odds
+odds = squeeze(diff(log(E.O(1:size(E.O,1),2:3,:)),[],2));
 figure;
-subplot(1,2,1)
-plot(v, pk0, '-', 'color', 'r')
-hold on;
-plot(v, pk0_h, '-','color',y)
-hold on;
-plot(v, pk0_l, '-','color',g)
-legend('overall','high conf.','low conf.')
-title('time-averaged PK')
+imagesc(odds)
+colorbar
+xlabel('time')
+ylabel('trials')
+title('log odds')
 
-subplot(1,2,2)
-plot(1:nbin, pk, '-','color','r')
-hold on;
-plot(1:nbin, pk_h, '-','color',y)
-hold on;
-plot(1:nbin, pk_l, '-','color',g)
-title('PK amplitude')
+% % putative reaction time
+% rt = zeros(1, s(1));
+% for i = 1:s(1)
+%     pmax=max(E.O(i,2:3,n0S+1:s(4)),[],2);
+%     aux=1+find(pmax<thresh,1,'last');
+%     if isempty(aux)
+%         rt(i)=n0S;
+%     else
+%         rt(i)=aux+n0S;
+%     end
+% end
 
-function [pk0] = getKernel(hdxmat, ch)
+% % confidence
+% conf = abs(odds(:,end));
+% med = median(conf);
 
-% trial averaged stimulus distributions
-disval = unique(hdxmat);
-len_d = length(disval);
-svmat = zeros(size(hdxmat,1), len_d);
-for r = 1:size(hdxmat,1)
-    for d = 1:len_d
-        svmat(r,d) = sum(hdxmat(r,:)==disval(d));
-    end
-end
+% % split
+% El = E;
+% El.Signal = El.Signal(conf < med, :, :);
+% El.O = El.O(conf < med, :, :);
+% Eh = E;
+% Eh.Signal = Eh.Signal(conf > med, :, :);
+% Eh.O = Eh.O(conf > med, :, :);
 
-% compute PK for 0% stimulus
-pk0 = mean(svmat(ch==1,:),1) - mean(svmat(ch==0,:),1);
+% PK
+[pk] = getPK(E);
+% [pkh] = getPK(Eh);
+% [pkl] = getPK(El);
+figure;
+plot(pk, '-r')
+% hold on;
+% plot(pkh, '-','color',y)
+% hold on;
+% plot(pkl, '-','color',g)
 
+% % PK amp
+% [pk] = getPKamp(E);
+% [pkh] = getPKamp(Eh);
+% [pkl] = getPKamp(El);
+% figure;
+% plot(pk, '-r')
+% hold on;
+% plot(pkh, '-','color',y)
+% hold on;
+% plot(pkl, '-','color',g)
+% 
+% % binned
+% figure;
+% nbin = 4;
+% [pkamp] = pkbin(pk,nbin);
+% plot(pkamp, '-r')
+% hold on;
+% [pkamph] = pkbin(pkh,nbin);
+% plot(pkamph, '-','color',y)
+% hold on;
+% [pkampl] = pkbin(pkl,nbin);
+% plot(pkampl, '-','color',g)
+
+%%
+function [pk] = getPK(E)
+% the number of V1 neurons
+nX = size(E.X, 2);
+% O_pref=1;
+ixp=1; ixa=1+nX/2;
+idx_pref=(E.O(:,2,end)>0.5);
+idx_anti=(E.O(:,3,end)>0.5);
+prefpref=mean(E.Signal(idx_pref,ixp,:));
+prefanti=mean(E.Signal(idx_pref,ixa,:));
+antipref=mean(E.Signal(idx_anti,ixp,:));
+antianti=mean(E.Signal(idx_anti,ixa,:));
+pk=prefpref-prefanti-antipref+antianti;
+pk = squeeze(pk);
+
+% function [pk] = getPKamp(E)
+% % the number of V1 neurons
+% nX = size(E.X, 2);
+% % O_pref=1;
+% ixp=1; ixa=1+nX/2;
+% ch = E.O(:,1,end) - 1;
+% post1 = E.O(:,2,end);
+% post2 = E.O(:,3,end);
+% idx_pref=find(post1>0.5);
+% idx_anti=find(post2>0.5);
+% X1p = nan(length(idx_pref), size(E.X, 3));
+% X2n = nan(length(idx_pref), size(E.X, 3));
+% for i = 1:length(idx_pref)
+%     X1p(i,:) = squeeze(E.Signal(idx_pref(i),ixp,:))';
+%     X2n(i,:) = squeeze(E.Signal(idx_pref(i),ixa,:))';
+% end
+% X1n = nan(length(idx_anti), size(E.X, 3));
+% X2p = nan(length(idx_anti), size(E.X, 3));
+% for i = 1:length(idx_anti)
+%     X1n(i,:) = squeeze(E.Signal(idx_anti(i),ixp,:))';
+%     X2p(i,:) = squeeze(E.Signal(idx_anti(i),ixa,:))';
+% end
+% X = [X1p; X1n];
+% y = [post1(idx_pref); post1(idx_anti)];
+% % X = [X1p; X2n; X1n; X2p];
+% % y = [post1(idx_pref); post2(idx_pref); ...
+% %     post1(idx_anti); post2(idx_anti)];
+% pk = zeros(1, size(E.X, 3));
+% for i = 1:size(E.X, 3)
+%     b = glmfit(X(:,i), y, 'normal', 'link', 'identity', 'constant', 'on');
+%     pk(i) = b(2);
+% end
+
+% function binned = pkbin(pkamp, nbin)
+% lenv = length(pkamp);
+% frameperbin = floor(lenv/nbin);
+% binned = zeros(1, nbin);
+% begin = 1;
+% for n = 1:nbin
+%     binned(n) = mean(pkamp(begin:begin+frameperbin-1));
+%     begin = begin + frameperbin;
+% end
