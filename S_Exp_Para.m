@@ -91,15 +91,14 @@ switch mode
 %         P.I.stimulus_regime='dynamic-switching-signal';
         P.I.n_zero_signal = 50;
         
-    case 'paper-2AFC-PKamp'
+    case 'PK-amplitude'
         P.G.prior_task = [1 0]; % [cardinal, oblique]
         
         P.G.dimension_X = 256;
         P.G.dimension_G = 64;
-        P.G.tauStyle = 1;
-        P.S.number_repetitions = 2000;        
+        P.S.number_repetitions = 10000;        
         P.I.stimulus_regime='dynamic-switching-signal-blocked';
-        P.I.stimulus_contrast = 10*ones(P.G.number_locations, P.G.number_orientations);
+        P.I.stimulus_contrast = 1*ones(P.G.number_locations, P.G.number_orientations);
         P.I.n_zero_signal = 10;
         P.G.number_samples_per_evidence = 15;
         P.S.n_samples = 100;
@@ -189,7 +188,7 @@ P.G.pO = ones(1,P.G.number_orientations)/P.G.number_orientations;
 P.G.pL = ones(1,P.G.number_locations)/P.G.number_locations;
 P.G.phi_O = [(0:2:2*(P.G.number_orientations-1)); ...
              (1:2:2*P.G.number_orientations-1)] * pi/2/P.G.number_orientations;
-P.I.stimulus_contrast = zeros(1,P.G.number_orientations);
-P.S.n_samples = P.S.number_burn_in+P.S.number_samples_to_use;
+% P.I.stimulus_contrast = zeros(1,P.G.number_orientations);
+% P.S.n_samples = P.S.number_burn_in+P.S.number_samples_to_use;
 
 end
