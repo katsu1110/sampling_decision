@@ -18,6 +18,7 @@ colorbar
 xlabel('time')
 ylabel('trials')
 title('log odds')
+set(gca, 'box', 'off'); set(gca, 'TickDir', 'out')
 
 % % putative reaction time
 % rt = zeros(1, s(1));
@@ -49,6 +50,9 @@ title('log odds')
 % [pkl] = getPK(El);
 figure;
 plot(pk, '-r')
+xlabel('time')
+ylabel('PK')
+set(gca, 'box', 'off'); set(gca, 'TickDir', 'out')
 % hold on;
 % plot(pkh, '-','color',y)
 % hold on;
@@ -80,7 +84,7 @@ plot(pk, '-r')
 %%
 function [pk] = getPK(E)
 % the number of V1 neurons
-nX = size(E.X, 2);
+nX =  size(E.X, 2);
 % O_pref=1;
 ixp=1; ixa=1+nX/2;
 idx_pref=(E.O(:,2,end)>0.5);
