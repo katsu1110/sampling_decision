@@ -93,14 +93,17 @@ switch mode
         
     case 'PK-amplitude'
         P.G.prior_task = [1 0]; % [cardinal, oblique]
+        P.S.alpha = 0.9;                 % strength of top-down influence (0 to 1)
         
-        P.G.dimension_X = 256;
-        P.G.dimension_G = 64;
-        P.S.number_repetitions = 10000;        
-        P.I.stimulus_regime='dynamic-switching-signal-blocked';
-        P.I.stimulus_contrast = 1*ones(P.G.number_locations, P.G.number_orientations);
-        P.I.n_zero_signal = 10;
-        P.G.number_samples_per_evidence = 15;
+        P.G.dimension_X = 256;  % the number of V1 neurons
+        P.G.dimension_G = 64;    % the number of higher area neurons
+        P.S.number_repetitions = 10000;       % the number of trials  
+        P.I.stimulus_regime='dynamic-switching-signal-blocked';  % for dynamic stimulus
+        P.I.stimulus_contrast = 10*ones(P.G.number_locations, P.G.number_orientations);
+        % determines the strength of signal
+        % The followings are set just to get 17 data samples in PK
+        P.I.n_zero_signal = 1;  
+        P.G.number_samples_per_evidence = 6;
         P.S.n_samples = 100;
         
     case 'test-2AFC-corr'
