@@ -6,19 +6,41 @@ close all;
 y = [0.9576    0.7285    0.2285];
 g = [0.1059    0.4706    0.2157];
 
-% basic info
-s = size(E.G);
-n0S = E.InputImage.n_zero_signal;
+% start of sampling
+n0S=E.InputImage.n_zero_signal; 
 
-% log-odds
-odds = squeeze(diff(log(E.O(1:size(E.O,1),2:3,:)),[],2));
+% % log-odds
+% conf_proxy = squeeze(diff(log(E.O(1:size(E.O,1),2:3,:)),[],2));
+
+% posterior
+pos = squeeze(E.O(1:size(E.O,1),2,:));
+conf_proxy = abs(pos - 0.5) + 0.5;
+
+% debug posterior
 figure;
-imagesc(odds)
+subplot(1,3,1)
+imagesc(pos)
 colorbar
 xlabel('time')
 ylabel('trials')
-title('log odds')
+title('posterior')
 set(gca, 'box', 'off'); set(gca, 'TickDir', 'out')
+subplot(1,3,2)
+rng(1220);
+plot(pos(randi([1, size(E.Signal, 1)], 20, 1),:)')
+xlabel('time')
+ylabel('trials')
+title('posterior')
+set(gca, 'box', 'off'); set(gca, 'TickDir', 'out')
+subplot(1,3,3)
+histogram(pos)
+xlabel('posterior at the end of a trial')
+ylabel('trials')
+set(gca, 'box', 'off'); set(gca, 'TickDir', 'out')
+
+% confidence
+conf = abs(conf_proxy(:,end));
+med = median(conf);
 
 % % putative reaction time
 % rt = zeros(1, s(1));
@@ -32,57 +54,34 @@ set(gca, 'box', 'off'); set(gca, 'TickDir', 'out')
 %     end
 % end
 
-% % confidence
-% conf = abs(odds(:,end));
-% med = median(conf);
-
-% % split
-% El = E;
-% El.Signal = El.Signal(conf < med, :, :);
-% El.O = El.O(conf < med, :, :);
-% Eh = E;
-% Eh.Signal = Eh.Signal(conf > med, :, :);
-% Eh.O = Eh.O(conf > med, :, :);
+% split
+El = E;
+El.Signal = El.Signal(conf < med, :, :);
+El.O = El.O(conf < med, :, :);
+Eh = E;
+Eh.Signal = Eh.Signal(conf > med, :, :);
+Eh.O = Eh.O(conf > med, :, :);
 
 % PK
-[pk] = getPK(E);
-% [pkh] = getPK(Eh);
-% [pkl] = getPK(El);
+[pk] = getPK(E, n0S);
+[pkh] = getPK(Eh, n0S);
+[pkl] = getPK(El, n0S);
 figure;
 plot(pk, '-r')
 xlabel('time')
 ylabel('PK')
 set(gca, 'box', 'off'); set(gca, 'TickDir', 'out')
-% hold on;
-% plot(pkh, '-','color',y)
-% hold on;
-% plot(pkl, '-','color',g)
 
-% % PK amp
-% [pk] = getPKamp(E);
-% [pkh] = getPKamp(Eh);
-% [pkl] = getPKamp(El);
-% figure;
-% plot(pk, '-r')
-% hold on;
-% plot(pkh, '-','color',y)
-% hold on;
-% plot(pkl, '-','color',g)
-% 
-% % binned
-% figure;
-% nbin = 4;
-% [pkamp] = pkbin(pk,nbin);
-% plot(pkamp, '-r')
-% hold on;
-% [pkamph] = pkbin(pkh,nbin);
-% plot(pkamph, '-','color',y)
-% hold on;
-% [pkampl] = pkbin(pkl,nbin);
-% plot(pkampl, '-','color',g)
+figure;
+plot(pkh, '-','color',y)
+hold on;
+plot(pkl, '-','color',g)
+xlabel('time')
+ylabel('PK')
+set(gca, 'box', 'off'); set(gca, 'TickDir', 'out')
 
 %%
-function [pk] = getPK(E)
+function [pk] = getPK(E, n0S)
 % the number of V1 neurons
 nX =  size(E.X, 2);
 % O_pref=1;
@@ -95,46 +94,5 @@ antipref=mean(E.Signal(idx_anti,ixp,:));
 antianti=mean(E.Signal(idx_anti,ixa,:));
 pk=prefpref-prefanti-antipref+antianti;
 pk = squeeze(pk);
+pk = pk(n0S+1:end);
 
-% function [pk] = getPKamp(E)
-% % the number of V1 neurons
-% nX = size(E.X, 2);
-% % O_pref=1;
-% ixp=1; ixa=1+nX/2;
-% ch = E.O(:,1,end) - 1;
-% post1 = E.O(:,2,end);
-% post2 = E.O(:,3,end);
-% idx_pref=find(post1>0.5);
-% idx_anti=find(post2>0.5);
-% X1p = nan(length(idx_pref), size(E.X, 3));
-% X2n = nan(length(idx_pref), size(E.X, 3));
-% for i = 1:length(idx_pref)
-%     X1p(i,:) = squeeze(E.Signal(idx_pref(i),ixp,:))';
-%     X2n(i,:) = squeeze(E.Signal(idx_pref(i),ixa,:))';
-% end
-% X1n = nan(length(idx_anti), size(E.X, 3));
-% X2p = nan(length(idx_anti), size(E.X, 3));
-% for i = 1:length(idx_anti)
-%     X1n(i,:) = squeeze(E.Signal(idx_anti(i),ixp,:))';
-%     X2p(i,:) = squeeze(E.Signal(idx_anti(i),ixa,:))';
-% end
-% X = [X1p; X1n];
-% y = [post1(idx_pref); post1(idx_anti)];
-% % X = [X1p; X2n; X1n; X2p];
-% % y = [post1(idx_pref); post2(idx_pref); ...
-% %     post1(idx_anti); post2(idx_anti)];
-% pk = zeros(1, size(E.X, 3));
-% for i = 1:size(E.X, 3)
-%     b = glmfit(X(:,i), y, 'normal', 'link', 'identity', 'constant', 'on');
-%     pk(i) = b(2);
-% end
-
-% function binned = pkbin(pkamp, nbin)
-% lenv = length(pkamp);
-% frameperbin = floor(lenv/nbin);
-% binned = zeros(1, nbin);
-% begin = 1;
-% for n = 1:nbin
-%     binned(n) = mean(pkamp(begin:begin+frameperbin-1));
-%     begin = begin + frameperbin;
-% end
