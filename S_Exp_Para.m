@@ -93,7 +93,7 @@ switch mode
         
     case 'PK-amplitude'
         P.G.prior_task = [1 0]; % [cardinal, oblique]
-        P.S.alpha = 0.9;                 % strength of top-down influence (0 to 1)
+        P.S.alpha = 1;                 % strength of top-down influence (0 to 1)
         
         P.G.dimension_X = 256;  % the number of V1 neurons
         P.G.dimension_G = 64;    % the number of higher area neurons
