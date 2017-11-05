@@ -63,9 +63,11 @@ conf = abs(conf_proxy(:,end));
 %%
 % debug PK
 figure;
-plot(getPK(E, n0S), '-r')
+pk = getPK(E, n0S);
+plot(pk/mean(pk), '-r')
 hold on;
-plot(getPKbyLogReg(E, n0S),'--r')
+pk = getPKbyLogReg(E, n0S);
+plot(pk/mean(pk),'--r')
 xlabel('time')
 ylabel('PK')
 set(gca, 'box', 'off'); set(gca, 'TickDir', 'out')
@@ -74,15 +76,21 @@ set(gca, 'box', 'off'); set(gca, 'TickDir', 'out')
 % split PK by confidence level
 pivot = min(conf)*ones(1, nsplit);
 col = jet(nsplit);
-figure;
+PK_normal = nan(nsplit, length(pk));
+PK_logreg = nan(nsplit, length(pk));
 for n = 2:nsplit+1
     pivot(n) = percentile(conf, (n-1)*round(100/nsplit));
     E_temp  = E;
     E_temp.Signal = E_temp.Signal(conf >= pivot(n-1) & conf < pivot(n), :, :);
     E_temp.O = E_temp.O(conf >= pivot(n-1) & conf < pivot(n), :, :);
-    plot(getPK(E_temp, n0S), '-','color',col(n,:),'linewidth',2)
+    PK_normal(n-1,:) = getPK(E_temp, n0S);
+    PK_logreg(n-1,:) = getPKbyLogReg(E_temp, n0S);
+end
+figure;
+for n = 1:nsplit
+    plot(PK_normal(n,:)/mean(PK_normal(:)), '-','color',col(n,:),'linewidth',2)
     hold on;
-    plot(getPKbyLogReg(E_temp, n0S), '--','color',col(n,:),'linewidth',2)
+    plot(PK_logreg(n,:)/mean(PK_logreg(:)), '--','color',col(n,:),'linewidth',2)
     hold on;
 end
 xlabel('time')
