@@ -79,7 +79,7 @@ col = jet(nsplit);
 PK_normal = nan(nsplit, length(pk));
 PK_logreg = nan(nsplit, length(pk));
 for n = 2:nsplit+1
-    pivot(n) = percentile(conf, (n-1)*round(100/nsplit));
+    pivot(n) = prctile(conf, (n-1)*round(100/nsplit));
     E_temp  = E;
     E_temp.Signal = E_temp.Signal(conf >= pivot(n-1) & conf < pivot(n), :, :);
     E_temp.O = E_temp.O(conf >= pivot(n-1) & conf < pivot(n), :, :);
