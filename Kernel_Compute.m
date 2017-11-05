@@ -1,4 +1,8 @@
-function Kernel_Compute(E)
+function Kernel_Compute(E, nsplit, varargin)
+
+if nargin==1
+    nsplit = 2;
+end
 
 close all;
 
@@ -16,6 +20,7 @@ n0S=E.InputImage.n_zero_signal;
 pos = squeeze(E.O(1:size(E.O,1),2,:));
 conf_proxy = abs(pos - 0.5) + 0.5;
 
+%%
 % debug posterior
 figure;
 subplot(1,3,1)
@@ -38,9 +43,10 @@ xlabel('posterior at the end of a trial')
 ylabel('trials')
 set(gca, 'box', 'off'); set(gca, 'TickDir', 'out')
 
+%%
 % confidence
 conf = abs(conf_proxy(:,end));
-med = median(conf);
+% med = median(conf);
 
 % % putative reaction time
 % rt = zeros(1, s(1));
@@ -54,31 +60,33 @@ med = median(conf);
 %     end
 % end
 
-% split
-El = E;
-El.Signal = El.Signal(conf < med, :, :);
-El.O = El.O(conf < med, :, :);
-Eh = E;
-Eh.Signal = Eh.Signal(conf > med, :, :);
-Eh.O = Eh.O(conf > med, :, :);
-
-% PK
-[pk] = getPK(E, n0S);
-[pkh] = getPK(Eh, n0S);
-[pkl] = getPK(El, n0S);
+%%
+% debug PK
 figure;
-plot(pk, '-r')
+plot(getPK(E, n0S), '-r')
 xlabel('time')
 ylabel('PK')
 set(gca, 'box', 'off'); set(gca, 'TickDir', 'out')
 
+%%
+% split PK by confidence level
+PK_split = cell(1, nsplit);
+pivot = min(conf)*ones(1, nsplit);
+col = jet(nsplit);
 figure;
-plot(pkh, '-','color',y)
-hold on;
-plot(pkl, '-','color',g)
+for n = 2:nsplit+1
+    pivot(n) = percentile(conf, (n-1)*round(100/nsplit));
+    E_temp  = E;
+    E_temp.Signal = E_temp.Signal(conf >= pivot(n-1) & conf < pivot(n), :, :);
+    E_temp.O = E_temp.O(conf >= pivot(n-1) & conf < pivot(n), :, :);
+    PK_split{n} = getPK(E_temp, n0S);
+    plot(pkh, '-','color',col(n,:),'linewidth',2)
+    hold on;
+end
 xlabel('time')
 ylabel('PK')
 set(gca, 'box', 'off'); set(gca, 'TickDir', 'out')
+
 
 %%
 function [pk] = getPK(E, n0S)
@@ -95,4 +103,17 @@ antianti=mean(E.Signal(idx_anti,ixa,:));
 pk=prefpref-prefanti-antipref+antianti;
 pk = squeeze(pk);
 pk = pk(n0S+1:end);
+
+function [pk] = getPKbyLogReg(E, n0S)
+% the number of V1 neurons
+nX =  size(E.X, 2);
+% O_pref=1;
+ixp=1; ixa=1+nX/2;
+stmmat1 = zeros(size(E.Signal,1),size(E.Signal,3));
+stmmat2 = zeros(size(E.Signal,1),size(E.Signal,3));
+for n = 1:size(E.Signal,1)
+    stmmat1(n,:) = squeeze(E.Signal(n,ixp,:));
+    stmmat2(n,:) = squeeze(E.Signal(n,ixa,:));
+end
+
 
