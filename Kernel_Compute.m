@@ -74,8 +74,8 @@ pivot = min(conf)*ones(1, nsplit);
 if nsplit==2
     col = zeros(2,3);
     % yellow and green
-    col(:,2) = [0.9576    0.7285    0.2285];
-    col(:,1) = [0.1059    0.4706    0.2157];
+    col(2,:) = [0.9576    0.7285    0.2285];
+    col(1,:) = [0.1059    0.4706    0.2157];
 else
     col = jet(nsplit);
 end
