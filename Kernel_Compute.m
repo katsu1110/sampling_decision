@@ -64,13 +64,14 @@ conf = abs(conf_proxy(:,end));
 % debug PK
 figure;
 plot(getPK(E, n0S), '-r')
+hold on;
+plot(getPKbyLogReg(E, n0S),'--r')
 xlabel('time')
 ylabel('PK')
 set(gca, 'box', 'off'); set(gca, 'TickDir', 'out')
 
 %%
 % split PK by confidence level
-PK_split = cell(1, nsplit);
 pivot = min(conf)*ones(1, nsplit);
 col = jet(nsplit);
 figure;
@@ -79,8 +80,9 @@ for n = 2:nsplit+1
     E_temp  = E;
     E_temp.Signal = E_temp.Signal(conf >= pivot(n-1) & conf < pivot(n), :, :);
     E_temp.O = E_temp.O(conf >= pivot(n-1) & conf < pivot(n), :, :);
-    PK_split{n} = getPK(E_temp, n0S);
-    plot(pkh, '-','color',col(n,:),'linewidth',2)
+    plot(getPK(E_temp, n0S), '-','color',col(n,:),'linewidth',2)
+    hold on;
+    plot(getPKbyLogReg(E_temp, n0S), '--','color',col(n,:),'linewidth',2)
     hold on;
 end
 xlabel('time')
@@ -107,6 +109,8 @@ pk = pk(n0S+1:end);
 function [pk] = getPKbyLogReg(E, n0S)
 % the number of V1 neurons
 nX =  size(E.X, 2);
+% choice
+ch = E.O(:,1,end) - 1;
 % O_pref=1;
 ixp=1; ixa=1+nX/2;
 stmmat1 = zeros(size(E.Signal,1),size(E.Signal,3));
@@ -115,5 +119,11 @@ for n = 1:size(E.Signal,1)
     stmmat1(n,:) = squeeze(E.Signal(n,ixp,:));
     stmmat2(n,:) = squeeze(E.Signal(n,ixa,:));
 end
-
-
+% logistic regression
+pk = zeros(1, size(E.Signal, 3));
+for n = 1:size(E.Signal,3)
+    b1 = glmfit(stmmat1(:,n),ch,'binomial','link','logit','constant','on');
+    b2 = glmfit(stmmat2(:,n),ch,'binomial','link','logit','constant','on');
+    pk(n) = (abs(b1(2))+abs(b2(2)))/2;
+end
+pk = pk(n0S+1:end);
