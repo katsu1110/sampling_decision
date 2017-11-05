@@ -6,10 +6,6 @@ end
 
 close all;
 
-% yellow and green
-y = [0.9576    0.7285    0.2285];
-g = [0.1059    0.4706    0.2157];
-
 % start of sampling
 n0S=E.InputImage.n_zero_signal; 
 
@@ -75,7 +71,14 @@ set(gca, 'box', 'off'); set(gca, 'TickDir', 'out')
 %%
 % split PK by confidence level
 pivot = min(conf)*ones(1, nsplit);
-col = jet(nsplit);
+if nsplit==2
+    col = zeros(2,3);
+    % yellow and green
+    col(:,2) = [0.9576    0.7285    0.2285];
+    col(:,1) = [0.1059    0.4706    0.2157];
+else
+    col = jet(nsplit);
+end
 PK_normal = nan(nsplit, length(pk));
 PK_logreg = nan(nsplit, length(pk));
 for n = 2:nsplit+1
@@ -132,6 +135,6 @@ pk = zeros(1, size(E.Signal, 3));
 for n = 1:size(E.Signal,3)
     b1 = glmfit(stmmat1(:,n),ch,'binomial','link','logit','constant','on');
     b2 = glmfit(stmmat2(:,n),ch,'binomial','link','logit','constant','on');
-    pk(n) = (abs(b1(2))+abs(b2(2)))/2;
+    pk(n) = b1(2) - b2(2);
 end
 pk = pk(n0S+1:end);

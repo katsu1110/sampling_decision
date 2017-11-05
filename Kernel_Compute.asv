@@ -6,10 +6,6 @@ end
 
 close all;
 
-% yellow and green
-y = [0.9576    0.7285    0.2285];
-g = [0.1059    0.4706    0.2157];
-
 % start of sampling
 n0S=E.InputImage.n_zero_signal; 
 
@@ -75,11 +71,12 @@ set(gca, 'box', 'off'); set(gca, 'TickDir', 'out')
 %%
 % split PK by confidence level
 pivot = min(conf)*ones(1, nsplit);
+
 col = jet(nsplit);
 PK_normal = nan(nsplit, length(pk));
 PK_logreg = nan(nsplit, length(pk));
 for n = 2:nsplit+1
-    pivot(n) = percentile(conf, (n-1)*round(100/nsplit));
+    pivot(n) = prctile(conf, (n-1)*round(100/nsplit));
     E_temp  = E;
     E_temp.Signal = E_temp.Signal(conf >= pivot(n-1) & conf < pivot(n), :, :);
     E_temp.O = E_temp.O(conf >= pivot(n-1) & conf < pivot(n), :, :);
@@ -90,7 +87,7 @@ figure;
 for n = 1:nsplit
     plot(PK_normal(n,:)/mean(PK_normal(:)), '-','color',col(n,:),'linewidth',2)
     hold on;
-    plot(PK_(n,:)/mean(PK_logreg(:)), '--','color',col(n,:),'linewidth',2)
+    plot(PK_logreg(n,:)/mean(PK_logreg(:)), '--','color',col(n,:),'linewidth',2)
     hold on;
 end
 xlabel('time')
