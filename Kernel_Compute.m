@@ -1,8 +1,10 @@
 function Kernel_Compute(E, varargin)
 
 nsplit = 2;
-cuttime = size(E.X, 3);
+cuttime = size(E.O, 3);
 resampling_flag = 0;
+nbin = cuttime -2;
+discretize_flag = 0;
 save_flag = 0;
 
 close all;
@@ -18,10 +20,20 @@ while  j <= length(varargin)
         case 'resample'
             resampling_flag = 1;
             j = j + 1;
+        case 'nbin'
+            nbin = varargin{j+1};
+            j = j + 2;
+        case 'discretize'
+            discretize_flag = 1;
+            j = j + 1;
         case 'save'
             save_flag = 1;
             j = j + 1;
     end
+end
+
+if discretize_flag==1
+    E = discretize_signal(E);
 end
 
 % start of sampling
@@ -33,6 +45,9 @@ n0S=E.InputImage.n_zero_signal;
 % posterior
 pos = squeeze(E.O(1:size(E.O,1),2,:));
 conf = abs(pos(:,cuttime) - 0.5) + 0.5;
+
+% % add noise
+% conf = conf + normrnd(median(conf), 0.1*median(conf), size(conf));
 
 %%
 % confidence
@@ -62,8 +77,11 @@ if nsplit==2
 else
     col = jet(nsplit);
 end
+
+% PK
 PK_normal = nan(nsplit, E.Projection.n_frames - n0S -1);
 PK_logreg = nan(nsplit, E.Projection.n_frames - n0S -1);
+pkt = cell(1, nsplit);
 serr_pk = zeros(nsplit, E.Projection.n_frames - n0S -1);
 serr_logreg = zeros(nsplit, E.Projection.n_frames - n0S -1);
 for n = 2:nsplit+1
@@ -73,8 +91,11 @@ for n = 2:nsplit+1
     E_temp.O = E_temp.O(conf >= pivot(n-1) & conf < pivot(n), :, :);
     PK_normal(n-1,:) = getPK(E_temp, n0S);
     PK_logreg(n-1,:) = getPKbyLogReg(E_temp, n0S);
+    if discretize_flag == 1
+        [pkt{n-1}] = getDKernel(E_temp);
+    end
     if resampling_flag==1
-        [serr_pk(n-1,:), serr_logreg(n-1,:)] = resamplingPK(E_temp, 1000);
+        [serr_pk(n-1,:), serr_logreg(n-1,:)] = resamplePK(E_temp, 1000);
     end
 end
 
@@ -122,10 +143,11 @@ plot([0.5 length(pk0)+0.5],[0 0], ':k')
 hold on;
 if resampling_flag==1
     hold on
-     [err_pk, err_logreg] = resamplePK(E, 1000);
-     fill([stime fliplr(stime)],[(pk0 - err_pk)/mean(pk0)  fliplr((pk0 + err_pk)/mean(pk0))], 0.45*[1 0 0]);
+     [err_pk] = resamplePK(E, 100);
+     fill_between(stime,(pk0' - err_pk)/mean(pk0), (pk0' + err_pk)/mean(pk0), [1 0 0]);
      hold on;
-     fill([stime fliplr(stime)],[(pk1 - err_logreg)/mean(pk1)  fliplr((pk1 + err_logreg)/mean(pk1))], 0.45*[1 0 0]);
+%      fill_between(stime,(pk1 - err_logreg)/mean(pk1), (pk1 + err_logreg)/mean(pk1), [1 0 0]);
+%      hold on;
 end
 plot(stime, pk0/mean(pk0), '-r')
 hold on;
@@ -140,13 +162,12 @@ plot([0.5 length(pk0)+0.5],[0 0], ':k')
 hold on;
 for n = 1:nsplit
     if resampling_flag==1
-        edgecolor = col(n,:) + (1 - col(n,:))*0.55;
-        fill([stime fliplr(stime)], [(PK_normal(n,:) - serr_pk(n,:))/mean(PK_normal(:)), ...
-            (PK_normal(n,:) + serr_pk(n,:))/mean(PK_normal(:))], edgecolor)
+        fill_between(stime, (PK_normal(n,:) - serr_pk(n,:))/mean(PK_normal(:)), ...
+            (PK_normal(n,:) + serr_pk(n,:))/mean(PK_normal(:)), col(n,:))
         hold on;
-        fill([stime fliplr(stime)], [(PK_logreg(n,:) - serr_logreg(n,:))/mean(PK_logreg(:)), ...
-            (PK_logreg(n,:) + serr_logreg(n,:))/mean(PK_logreg(:))], edgecolor)
-        hold on;
+%         fill_between(stime, (PK_logreg(n,:) - serr_logreg(n,:))/mean(PK_logreg(:)), ...
+%             (PK_logreg(n,:) + serr_logreg(n,:))/mean(PK_logreg(:)), col(n,:))
+%         hold on;
     end
     plot(stime, PK_normal(n,:)/mean(PK_normal(:)), '-','color',col(n,:),'linewidth',1)
     hold on;
@@ -171,6 +192,38 @@ if save_flag==1
     print(h,'-dpdf',[savedir figname],sprintf('-r%d',180))
 end
 
+if discretize_flag==1
+    figure;
+    clim = nan(nsplit, 2);
+    for n = 1:nsplit
+        subplot(1,nsplit+1,n)
+        imagesc(pkt{nsplit-n+1})
+        clim(n,:) = caxis;
+    end
+    crange = [min(clim(:)) max(clim(:))]
+    for n = 1:nsplit
+        subplot(1,nsplit+1,n)
+        caxis(crange);
+    end
+    subplot(1,nsplit+1,nsplit+1)
+    plot([0.5 length(pk0)+0.5],[0 0], ':k')
+    hold on;
+    for n = 1:nsplit
+        if resampling_flag==1
+            fill_between(stime, (PK_normal(n,:) - serr_pk(n,:))/mean(PK_normal(:)), ...
+                (PK_normal(n,:) + serr_pk(n,:))/mean(PK_normal(:)), col(n,:))
+            hold on;
+        end
+        plot(stime, PK_normal(n,:)/mean(PK_normal(:)), '-','color',col(n,:),'linewidth',1)
+        hold on;
+    end
+    yy = get(gca, 'YLim');
+    xlim([0.5 length(pk0)+0.5])
+    ylim(yy)
+    xlabel('time')
+    ylabel('PK')
+    set(gca, 'box', 'off'); set(gca, 'TickDir', 'out')
+end
 
 %%
 function [pk] = getPK(E, n0S)
@@ -208,12 +261,12 @@ for n = 1:size(E.Signal,3)
     b2 = glmfit(stmmat2(:,n),ch,'binomial','link','logit','constant','on');
     pk(n) = b1(2) - b2(2);
 end
-pk = pk(n0S+2:end);
+pk = pk(n0S+2:end)';
 
 function [err_pk, err_logreg] = resamplePK(E, repeat)
 n0S = E.InputImage.n_zero_signal; 
-pkrep = nan(repeat, E.Projection.n_frames);
-logregrep = nan(repeat, E.Projection.n_frames);
+pkrep = nan(repeat, E.Projection.n_frames-n0S-1);
+logregrep = nan(repeat, E.Projection.n_frames-n0S-1);
 for r = 1:repeat
     tr = randi([1, size(E.Signal, 1)], size(E.Signal, 1), 1);
     E_temp  = E;
@@ -224,5 +277,41 @@ for r = 1:repeat
 end
 err_pk = std(pkrep,[],1);
 err_logreg = std(logregrep, [], 1);
-err_pk = err_pk(n0S+2:end);
-err_logreg = err_logreg(n0S+2:end);
+
+function [binned] = binnize(v, nbin)
+lenv = length(v);
+frameperbin = floor(lenv/nbin);
+binned = nan(1, nbin);
+begin = 1;
+for i = 1:nbin
+    binned(i) = mean(v(begin:begin+frameperbin-1));
+    begin = begin + frameperbin;
+end
+
+
+function [pkt] = getDKernel(E)
+n0S = E.InputImage.n_zero_signal; 
+nX =  size(E.X, 2);
+% O_pref=1;
+ixp=1; ixa=1+nX/2;
+% choice
+ch = E.O(:,1,end) - 1;
+% hdxmat
+hdxmat1 = squeeze(E.Signal(:,ixp,n0S+2:end));
+hdxmat2 = squeeze(E.Signal(:,ixa,n0S+2:end));
+disval1 = unique(hdxmat1(:));
+disval2 = unique(hdxmat2(:));
+len_d = length(disval1);
+svmat1 = zeros(size(hdxmat1,1), len_d);
+svmat2 = zeros(size(hdxmat2,1), len_d);
+pkt = nan(len_d, E.Projection.n_frames-n0S-1);
+for t = 1:size(hdxmat1,2)
+    for r = 1:size(hdxmat1,1)
+        for d = 1:len_d
+            svmat1(r,d) = sum(hdxmat1(r,t)==disval1(d));
+            svmat2(r,d) = sum(hdxmat2(r,t)==disval2(d));
+        end
+    end
+    pkt(:,t) = (mean(svmat1(ch==0,:),1) - mean(svmat1(ch==1,:),1))...
+        - (mean(svmat2(ch==0,:),1) - mean(svmat2(ch==1,:),1));
+end
