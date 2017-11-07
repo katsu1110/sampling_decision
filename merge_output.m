@@ -7,8 +7,13 @@ function E = merge_output(Es)
 % +++++++++++++++++++++++++++++++++++++++++++++++++
 
 % just for PK computation, the following should be enough
+rng(1220);
+rtr = datasample(1:size(Es{1}.Signal,1), round(size(Es{1}.Signal,1)/length(Es)));
 E = Es{1};
+E.Signal = E.Signal(rtr,:,:);
+E.O = E.O(rtr,:,:);
 for n = 2:length(Es)
-    E.Signal = cat(3, E.Signal, Es{n}.Signal);
-    E.O = cat(3, E.Signal, Es{n}.O);
+    rtr = datasample(1:size(Es{1}.Signal,1), round(size(Es{1}.Signal,1)/length(Es)));
+    E.Signal = cat(1, E.Signal, Es{n}.Signal(rtr,:,:));
+    E.O = cat(1, E.O, Es{n}.O(rtr,:,:));
 end
