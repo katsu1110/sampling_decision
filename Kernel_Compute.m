@@ -195,16 +195,19 @@ end
 if discretize_flag==1
     figure;
     clim = nan(nsplit, 2);
+    binval = [-pi/2, -3*pi/8, 0, pi/8, pi/4, 3*pi/8, pi/2, 7*pi/8, pi];
     for n = 1:nsplit
         subplot(1,nsplit+1,n)
-        imagesc(pkt{nsplit-n+1})
+        imagesc(1:size(pkt{nsplit-n+1},2),binval, pkt{nsplit-n+1})
         clim(n,:) = caxis;
     end
     crange = [min(clim(:)) max(clim(:))]
     for n = 1:nsplit
         subplot(1,nsplit+1,n)
         caxis(crange);
+        set(gca, 'YTick',[-0.4 2],'YTickLabel',{'0','\pi/2'})
     end
+
     subplot(1,nsplit+1,nsplit+1)
     plot([0.5 length(pk0)+0.5],[0 0], ':k')
     hold on;
@@ -255,20 +258,22 @@ for n = 1:size(E.Signal,1)
     stmmat2(n,:) = squeeze(E.Signal(n,ixa,:));
 end
 % logistic regression
-pk = zeros(1, size(E.Signal, 3));
-for n = 1:size(E.Signal,3)
-    b1 = glmfit(stmmat1(:,n),ch,'binomial','link','logit','constant','on');
-    b2 = glmfit(stmmat2(:,n),ch,'binomial','link','logit','constant','on');
-    pk(n) = b1(2) - b2(2);
-end
+b1 = glmfit(stmmat1,ch,'binomial','link','logit','constant','on');
+b2 = glmfit(stmmat2,ch,'binomial','link','logit','constant','on');
+pk = b1(2:end) - b2(2:end);
 pk = pk(n0S+2:end)';
 
 function [err_pk, err_logreg] = resamplePK(E, repeat)
 n0S = E.InputImage.n_zero_signal; 
 pkrep = nan(repeat, E.Projection.n_frames-n0S-1);
 logregrep = nan(repeat, E.Projection.n_frames-n0S-1);
+if size(E.Signal,1) > 10000
+    sub = 10000;
+else
+    sub = size(E.Signal,1);
+end
 for r = 1:repeat
-    tr = randi([1, size(E.Signal, 1)], size(E.Signal, 1), 1);
+    tr = randi([1, sub], sub, 1);
     E_temp  = E;
     E_temp.Signal = E_temp.Signal(tr, :, :);
     E_temp.O = E_temp.O(tr, :, :);
@@ -278,15 +283,15 @@ end
 err_pk = std(pkrep,[],1);
 err_logreg = std(logregrep, [], 1);
 
-function [binned] = binnize(v, nbin)
-lenv = length(v);
-frameperbin = floor(lenv/nbin);
-binned = nan(1, nbin);
-begin = 1;
-for i = 1:nbin
-    binned(i) = mean(v(begin:begin+frameperbin-1));
-    begin = begin + frameperbin;
-end
+% function [binned] = binnize(v, nbin)
+% lenv = length(v);
+% frameperbin = floor(lenv/nbin);
+% binned = nan(1, nbin);
+% begin = 1;
+% for i = 1:nbin
+%     binned(i) = mean(v(begin:begin+frameperbin-1));
+%     begin = begin + frameperbin;
+% end
 
 
 function [pkt] = getDKernel(E)
