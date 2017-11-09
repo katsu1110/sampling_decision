@@ -317,6 +317,6 @@ for t = 1:size(hdxmat1,2)
             svmat2(r,d) = sum(hdxmat2(r,t)==disval2(d));
         end
     end
-    pkt(:,t) = (mean(svmat1(ch==0,:),1) - mean(svmat1(ch==1,:),1))...
-        - (mean(svmat2(ch==0,:),1) - mean(svmat2(ch==1,:),1));
+    pkt(:,t) = (mean(svmat1(ch==1,:),1) - mean(svmat1(ch==0,:),1))...
+        - (mean(svmat2(ch==1,:),1) - mean(svmat2(ch==0,:),1));
 end
