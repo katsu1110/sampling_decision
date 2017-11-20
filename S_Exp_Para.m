@@ -82,14 +82,32 @@ switch mode
     case 'paper-2AFC-PK'
         P.G.dimension_X = 1024;
         P.G.dimension_G = 256;
-        P.G.delta = 80;
+%         P.G.delta = 80;
         P.G.tauStyle = 1;
-        P.G.sigmaStyle = 1e-10;
+%         P.G.sigmaStyle = 1e-10;
 
         P.S.number_repetitions = 16;
-
         P.I.stimulus_regime='dynamic-switching-signal-blocked';
+%         P.I.stimulus_regime='dynamic-switching-signal';
         P.I.n_zero_signal = 50;
+        
+    case 'PK-amplitude'
+        P.G.prior_task = [1 0]; % [cardinal, oblique]
+        P.S.alpha = 1;                 % strength of top-down influence (0 to 1)
+        P.G.kappa_O = [2 0]; % attended and unattended
+        P.G.kappa_G = 3;
+        P.G.delta = .12; % strength of X-G coupling for corr & CPs
+        P.G.dimension_X = 256;  % the number of V1 neurons
+        P.G.dimension_G = 64;    % the number of higher area neurons
+        P.S.number_repetitions = 20000;       % the number of trials  
+        P.I.stimulus_regime='dynamic-switching-signal-blocked';  % for dynamic stimulus
+        P.I.stimulus_contrast = 5*ones(P.G.number_locations, P.G.number_orientations);
+        % determines the strength of signal
+        % The followings are set just to get 17 data samples in PK
+        P.I.n_zero_signal = 1;  
+%         P.G.number_samples_per_evidence = 6;
+        P.G.number_samples_per_evidence = 3;
+        P.S.n_samples = 100;
         
     case 'test-2AFC-corr'
         P.G.dimension_X = 128;
@@ -176,7 +194,7 @@ P.G.pO = ones(1,P.G.number_orientations)/P.G.number_orientations;
 P.G.pL = ones(1,P.G.number_locations)/P.G.number_locations;
 P.G.phi_O = [(0:2:2*(P.G.number_orientations-1)); ...
              (1:2:2*P.G.number_orientations-1)] * pi/2/P.G.number_orientations;
-P.I.stimulus_contrast = zeros(1,P.G.number_orientations);
-P.S.n_samples = P.S.number_burn_in+P.S.number_samples_to_use;
+% P.I.stimulus_contrast = zeros(1,P.G.number_orientations);
+% P.S.n_samples = P.S.number_burn_in+P.S.number_samples_to_use;
 
 end

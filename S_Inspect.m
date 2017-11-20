@@ -47,22 +47,22 @@ switch fct
             idx=find(s((i-1)*nX/4+1,:)-s((i+1)*nX/4+1,:)>0);
             plot(mean(s(:,idx),2),[col{i} '-']);
             plot(mean(s(:,idx),2)-sm,[col{i} '--']);
-            Subplot; title('signals before signal onset');
-            s=permute(E.Signal(:,:,1:n0S),[2 1 3]);s=s(:,:); % combine last 2 dimensions
-            for i=1:4 % 4 possible signals
-                %Subplot; title('signals');
-                if numel(unique(s((i-1)*nX/4+1,:)))>1
-                    Histogram(s((i-1)*nX/4+1,1:n0S),[],[],[col{i} style{i}]);
-                end
-            end
-            Subplot; title('signals after signal onset');
-            s=permute(E.Signal(:,:,n0S+1:end),[2 1 3]);s=s(:,:); % combine last 2 dimensions
-            for i=1:4 % 4 possible signals
-                %Subplot; title('signals');
-                if numel(unique(s((i-1)*nX/4+1,:)))>1
-                    Histogram(s((i-1)*nX/4+1,:),[],[],[col{i} style{i}]);
-                end
-            end
+%             Subplot; title('signals before signal onset');
+%             s=permute(E.Signal(:,:,1:n0S),[2 1 3]);s=s(:,:); % combine last 2 dimensions
+%             for i=1:4 % 4 possible signals
+%                 %Subplot; title('signals');
+%                 if numel(unique(s((i-1)*nX/4+1,:)))>1
+%                     Histogram(s((i-1)*nX/4+1,1:n0S),[],[],[col{i} style{i}]);
+%                 end
+%             end
+%             Subplot; title('signals after signal onset');
+%             s=permute(E.Signal(:,:,n0S+1:end),[2 1 3]);s=s(:,:); % combine last 2 dimensions
+%             for i=1:4 % 4 possible signals
+%                 %Subplot; title('signals');
+%                 if numel(unique(s((i-1)*nX/4+1,:)))>1
+%                     Histogram(s((i-1)*nX/4+1,:),[],[],[col{i} style{i}]);
+%                 end
+%             end
         end
         Subplot; title('mean X'); xlabel('\phi');
         plot(squeeze(mean(mean(E.X(1,:,start:n0S),1),3)),'-');
