@@ -3,7 +3,6 @@ function Kernel_Compute(E, varargin)
 nsplit = 2;
 cuttime = size(E.O, 3);
 resampling_flag = 0;
-nbin = cuttime -2;
 discretize_flag = 0;
 save_flag = 0;
 
