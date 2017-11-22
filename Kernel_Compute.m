@@ -45,9 +45,14 @@ end
 % % log-odds
 % conf_proxy = squeeze(diff(log(E.O(1:size(E.O,1),2:3,:)),[],2));
 
+% decision time
+% dt = cuttime;
+dt = size(E.O,3);
+
 % posterior
 pos = squeeze(E.O(1:size(E.O,1),2,:));
 conf = abs(pos(:,cuttime) - 0.5) + 0.5;
+% conf = (2/pi)*atan((abs(pos(:,cuttime) - 0.5) + 0.5)/dt);
 
 % % add noise
 % conf = conf + normrnd(median(conf), 0.1*median(conf), size(conf));
@@ -92,13 +97,13 @@ for n = 2:nsplit+1
     E_temp  = E;
     E_temp.Signal = E_temp.Signal(conf >= pivot(n-1) & conf < pivot(n), :, :);
     E_temp.O = E_temp.O(conf >= pivot(n-1) & conf < pivot(n), :, :);
-    PK_normal(n-1,:) = getPK(E_temp, n0S);
-    PK_logreg(n-1,:) = getPKbyLogReg(E_temp, n0S);
+    PK_normal(n-1,:) = getPK(E_temp, n0S,dt);
+    PK_logreg(n-1,:) = getPKbyLogReg(E_temp, n0S,dt);
     if discretize_flag == 1
         [pkt{n-1}] = getDKernel(E_temp);
     end
     if resampling_flag==1
-        [serr_pk(n-1,:), serr_logreg(n-1,:)] = resamplePK(E_temp, 1000);
+        [serr_pk(n-1,:), serr_logreg(n-1,:)] = resamplePK(E_temp, 1000, dt);
     end
 end
 
@@ -139,14 +144,14 @@ set(gca, 'box', 'off'); set(gca, 'TickDir', 'out')
 %%
 % debug PK
 subplot(2,4,[5 6])
-pk0 = getPK(E, n0S);
-pk1 = getPKbyLogReg(E, n0S);
+pk0 = getPK(E, n0S,dt);
+pk1 = getPKbyLogReg(E, n0S,dt);
 stime = 1:length(pk0);
 plot([0.5 length(pk0)+0.5],[0 0], ':k')
 hold on;
 if resampling_flag==1
     hold on
-     [err_pk] = resamplePK(E, 100);
+     [err_pk] = resamplePK(E, 1000, dt);
      fill_between(stime,(pk0' - err_pk)/mean(pk0), (pk0' + err_pk)/mean(pk0), [1 0 0]);
      hold on;
 %      fill_between(stime,(pk1 - err_logreg)/mean(pk1), (pk1 + err_logreg)/mean(pk1), [1 0 0]);
@@ -237,7 +242,7 @@ if discretize_flag==1
 end
 
 %%
-function [pk] = getPK(E, n0S)
+function [pk] = getPK(E, n0S, dt)
 % the number of V1 neurons
 try
     nX =  size(E.X, 2);
@@ -246,8 +251,8 @@ catch
 end
 % O_pref=1;
 ixp=1; ixa=1+nX/2;
-idx_pref=(E.O(:,2,end)>0.5);
-idx_anti=(E.O(:,3,end)>0.5);
+idx_pref=(E.O(:,2,dt)>0.5);
+idx_anti=(E.O(:,3,dt)>0.5);
 prefpref=mean(E.Signal(idx_pref,ixp,:));
 prefanti=mean(E.Signal(idx_pref,ixa,:));
 antipref=mean(E.Signal(idx_anti,ixp,:));
@@ -256,7 +261,7 @@ pk=prefpref-prefanti-antipref+antianti;
 pk = squeeze(pk);
 pk = pk(n0S+2:end);
 
-function [pk] = getPKbyLogReg(E, n0S)
+function [pk] = getPKbyLogReg(E, n0S,dt)
 % the number of V1 neurons
 try
     nX =  size(E.X, 2);
@@ -264,7 +269,7 @@ catch
     nX = E.nv1;
 end
 % choice
-ch = E.O(:,1,end) - 1;
+ch = E.O(:,1,dt) - 1;
 % O_pref=1;
 ixp=1; ixa=1+nX/2;
 stmmat1 = zeros(size(E.Signal,1),size(E.Signal,3));
@@ -279,7 +284,7 @@ b2 = glmfit(stmmat2,ch,'binomial','link','logit','constant','on');
 pk = b1(2:end) - b2(2:end);
 pk = pk(n0S+2:end)';
 
-function [err_pk, err_logreg] = resamplePK(E, repeat)
+function [err_pk, err_logreg] = resamplePK(E, repeat, dt)
 try
     n0S = E.InputImage.n_zero_signal; 
 catch
@@ -297,8 +302,8 @@ for r = 1:repeat
     E_temp  = E;
     E_temp.Signal = E_temp.Signal(tr, :, :);
     E_temp.O = E_temp.O(tr, :, :);
-    pkrep(r,:) = getPK(E_temp, n0S);
-    logregrep(r,:) = getPKbyLogReg(E_temp, n0S);
+    pkrep(r,:) = getPK(E_temp, n0S, dt);
+    logregrep(r,:) = getPKbyLogReg(E_temp, n0S, dt);
 end
 err_pk = std(pkrep,[],1);
 err_logreg = std(logregrep, [], 1);
@@ -320,7 +325,7 @@ try
 catch
     n0S = E.n0S;
 end
-nX =  size(E.X, 2);
+nX =  E.nv1;
 % O_pref=1;
 ixp=1; ixa=1+nX/2;
 % choice

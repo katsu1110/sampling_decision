@@ -1,6 +1,6 @@
 function E = discretize_signal(E)
 
-nX =  size(E.X, 2);
+nX =  E.nv1;
 % O_pref=1;
 ixp=1; ixa=1+nX/2;
 pall = squeeze(E.Signal(:,ixp,:));
