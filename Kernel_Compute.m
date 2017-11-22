@@ -45,14 +45,27 @@ end
 % % log-odds
 % conf_proxy = squeeze(diff(log(E.O(1:size(E.O,1),2:3,:)),[],2));
 
+% choice
+ch = E.O(:,1,end) - 1;
+
 % decision time
 % dt = cuttime;
-dt = size(E.O,3);
+dt = size(E.O,3)*one(size(E.O,1),1);
 
 % posterior
+nframe = size(E.O,3);
 pos = squeeze(E.O(1:size(E.O,1),2,:));
-conf = abs(pos(:,cuttime) - 0.5) + 0.5;
-% conf = (2/pi)*atan((abs(pos(:,cuttime) - 0.5) + 0.5)/dt);
+% conf = abs(pos(:,cuttime) - 0.5) + 0.5;
+
+conf = zeros(size(E.O,1),1);
+for n = 1:size(E.O,1)
+    dt_temp = find(abs(E.O(n,2,:)-0.5)+0.5 > 0.85);
+    if ~isempty(dt_temp)
+        dt(n) = dt_temp;
+    end
+    conf(n) = (2/pi)*atan((abs(pos(:,dt(n)) - 0.5) + 0.5)/(dt(n)/nframe));
+    ch(n) = E.O(:,1, dt(n)) -1;
+end
 
 % % add noise
 % conf = conf + normrnd(median(conf), 0.1*median(conf), size(conf));
