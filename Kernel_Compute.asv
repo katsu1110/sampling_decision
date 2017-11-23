@@ -66,12 +66,11 @@ idx_anti= E.O(:,3, cuttime)>0.5;
 if bound_flag == 1
     nframe = size(E.O,3);
     for n = 1:size(E.O,1)
-        dt_temp = find(abs(E.O(n,2,:)-0.5)+0.5 > 0.7, 1, 'first');
+        dt_temp = find(abs(E.O(n,2,:)-0.5)+0.5 > 0., 1, 'first');
         if ~isempty(dt_temp)
             pos(n,dt_temp:end) = pos(n, dt_temp);
             dt(n) = dt_temp;
         end
-%         conf(n) = abs(pos(n,end) - 0.5) + 0.5;
         conf(n) = (2/pi)*atan((abs(pos(n,end) - 0.5) + 0.5)/(dt(n)/nframe));
         ch(n) = E.O(n,1, dt(n)) -1;
         if E.O(n,2,dt(n)) > 0.5
@@ -129,7 +128,7 @@ for n = 2:nsplit+1
     PK_normal(n-1,:) = getPK(E_temp, n0S, idx_pref(idx), idx_anti(idx));
     PK_logreg(n-1,:) = getPKbyLogReg(E_temp, n0S, ch(idx));
     if discretize_flag == 1
-        [pkt{n-1}] = getDKernel(E_temp, ch(idx));
+        [pkt{n-1}] = getDKernel(E_temp);
     end
     if resampling_flag==1
         [serr_pk(n-1,:), serr_logreg(n-1,:)] = resamplePK(E_temp, 1000,  idx_pref(idx), idx_anti(idx), ch(idx));
@@ -326,8 +325,8 @@ for r = 1:repeat
     E_temp  = E;
     E_temp.Signal = E_temp.Signal(tr, :, :);
     E_temp.O = E_temp.O(tr, :, :);
-    pkrep(r,:) = getPK(E_temp, n0S, idx_pref(tr), idx_anti(tr));
-    logregrep(r,:) = getPKbyLogReg(E_temp, n0S, ch(tr));
+    pkrep(r,:) = getPK(E_temp, n0S, idx_pref, idx_anti);
+    logregrep(r,:) = getPKbyLogReg(E_temp, n0S, ch);
 end
 err_pk = std(pkrep,[],1);
 err_logreg = std(logregrep, [], 1);
@@ -343,18 +342,17 @@ err_logreg = std(logregrep, [], 1);
 % end
 
 
-function [pkt] = getDKernel(E, ch)
+function [pkt] = getDKernel(E)
 try
     n0S = E.InputImage.n_zero_signal; 
 catch
     n0S = E.n0S;
 end
-try
-    nX =  size(E.X, 2);
-catch
-    nX = E.nv1;
-end
+nX =  E.nv1;
+% O_pref=1;
 ixp=1; ixa=1+nX/2;
+% choice
+ch = E.O(:,1,end) - 1;
 % hdxmat
 hdxmat1 = squeeze(E.Signal(:,ixp,n0S+2:end));
 hdxmat2 = squeeze(E.Signal(:,ixa,n0S+2:end));

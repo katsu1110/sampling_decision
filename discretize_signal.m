@@ -1,7 +1,10 @@
 function E = discretize_signal(E)
 
-nX =  E.nv1;
-% O_pref=1;
+try
+    nX =  size(E.X, 2);
+catch
+    nX = E.nv1;
+end
 ixp=1; ixa=1+nX/2;
 pall = squeeze(E.Signal(:,ixp,:));
 pall = pall(:);
