@@ -82,8 +82,8 @@ if bound_flag == 1
     end
 end
 
-% % add noise
-% conf = conf + normrnd(median(conf), 0.1*median(conf), size(conf));
+% add noise
+conf = conf + normrnd(median(conf), 0.2*median(conf), size(conf));
 
 %%
 % confidence
@@ -116,7 +116,7 @@ end
 
 % PK
 PK_normal = nan(nsplit, E.Projection.n_frames - n0S -1);
-PK_logreg = nan(nsplit, E.Projection.n_frames - n0S -1);
+% PK_logreg = nan(nsplit, E.Projection.n_frames - n0S -1);
 pkt = cell(1, nsplit);
 serr_pk = zeros(nsplit, E.Projection.n_frames - n0S -1);
 serr_logreg = zeros(nsplit, E.Projection.n_frames - n0S -1);
@@ -126,8 +126,8 @@ for n = 2:nsplit+1
     idx = conf >= pivot(n-1) & conf < pivot(n);
     E_temp.Signal = E_temp.Signal(idx, :, :);
     E_temp.O = E_temp.O(idx, :, :);
-    PK_normal(n-1,:) = getPK(E_temp, n0S, idx_pref(idx), idx_anti(idx));
-    PK_logreg(n-1,:) = getPKbyLogReg(E_temp, n0S, ch(idx));
+    PK_normal(n-1,:) = getPK(E_temp, n0S, idx_pref(idx), idx_anti(idx),discretize_flag);
+%     PK_logreg(n-1,:) = getPKbyLogReg(E_temp, n0S, ch(idx));
     if discretize_flag == 1
         [pkt{n-1}] = getDKernel(E_temp, ch(idx));
     end
@@ -173,8 +173,8 @@ set(gca, 'box', 'off'); set(gca, 'TickDir', 'out')
 %%
 % debug PK
 subplot(2,4,[5 6])
-pk0 = getPK(E, n0S,  idx_pref, idx_anti);
-pk1 = getPKbyLogReg(E, n0S, ch);
+pk0 = getPK(E, n0S,  idx_pref, idx_anti, discretize_flag);
+% pk1 = getPKbyLogReg(E, n0S, ch);
 stime = 1:length(pk0);
 plot([0.5 length(pk0)+0.5],[0 0], ':k')
 hold on;
@@ -187,9 +187,9 @@ if resampling_flag==1
 %      hold on;
 end
 plot(stime, pk0/mean(pk0), '-r')
-hold on;
-plot(stime, pk1/mean(pk1),'--r')
-xlim([0.5 length(pk1)+0.5])
+% hold on;
+% plot(stime, pk1/mean(pk1),'--r')
+xlim([0.5 length(pk0)+0.5])
 xlabel('time')
 ylabel('PK')
 set(gca, 'box', 'off'); set(gca, 'TickDir', 'out')
@@ -213,8 +213,8 @@ for n = 1:nsplit
     end
     plot(stime, PK_normal(n,:)/mean(PK_normal(:)), '-','color',col(n,:),'linewidth',1)
     hold on;
-    plot(stime, PK_logreg(n,:)/mean(PK_logreg(:)), '--','color',col(n,:),'linewidth',1)
-    hold on;
+%     plot(stime, PK_logreg(n,:)/mean(PK_logreg(:)), '--','color',col(n,:),'linewidth',1)
+%     hold on;
 end
 yy = get(gca, 'YLim');
 plot((access(cuttime)-n0S-1)*[1 1], yy, '--k')
@@ -271,7 +271,51 @@ if discretize_flag==1
 end
 
 %%
-function [pk] = getPK(E, n0S, idx_pref, idx_anti)
+function [pk] = getPK(E, n0S, idx_pref, idx_anti,discretized)
+if discretized==1
+    [pk] = PKbyHN(E, n0S, idx_pref, idx_anti);
+else
+    [pk] = PKbyRalf(E, n0S, idx_pref, idx_anti);
+end
+
+function [pk] = PKbyHN(E, n0S, idx_pref, idx_anti)
+% assuiming discretized stimulus
+% the number of V1 neurons
+try
+    nX =  size(E.X, 2);
+catch
+    nX = E.nv1;
+end
+% O_pref=1;
+len_frame = size(E.Signal,3);
+ixp=1; ixa=1+nX/2;
+disval_p = unique(squeeze(E.Signal(:,ixp,:)));
+disval_a = unique(squeeze(E.Signal(:,ixa,:)));
+lendp = length(disval_p);
+lenda = length(disval_a);
+stmmat_pp = zeros(len_frame,lendp);
+stmmat_pa = zeros(len_frame,lendp);
+stmmat_ap = zeros(len_frame,lenda);
+stmmat_aa = zeros(len_frame,lenda);
+for f = 1:len_frame
+    for d = 1:lendp
+        stmmat_pp(f,d) = sum(E.Signal(idx_pref,ixp,f)==disval_p(d));
+        stmmat_pa(f,d) = sum(E.Signal(idx_anti,ixp,f)==disval_p(d));
+    end
+    for d = 1:lenda
+        stmmat_ap(f,d) = sum(E.Signal(idx_anti,ixa,f)==disval_a(d));
+        stmmat_aa(f,d) = sum(E.Signal(idx_pref,ixa,f)==disval_a(d));
+    end
+end
+trpk = stmmat_pp - stmmat_pa + stmmat_ap - stmmat_aa;
+trpk = trpk(n0S+2:end,:);
+pk = zeros(1,size(trpk,1));
+for f = 1:size(trpk,1)
+    pk(f) = trpk(f,:)*mean(trpk,1)';
+end    
+
+
+function [pk] = PKbyRalf(E, n0S, idx_pref, idx_anti)
 % the number of V1 neurons
 try
     nX =  size(E.X, 2);
@@ -316,8 +360,8 @@ catch
 end
 pkrep = nan(repeat, E.Projection.n_frames-n0S-1);
 logregrep = nan(repeat, E.Projection.n_frames-n0S-1);
-if size(E.Signal,1) > 30000
-    sub = 30000;
+if size(E.Signal,1) > 80000
+    sub = 80000;
 else
     sub = size(E.Signal,1);
 end
@@ -326,7 +370,7 @@ for r = 1:repeat
     E_temp  = E;
     E_temp.Signal = E_temp.Signal(tr, :, :);
     E_temp.O = E_temp.O(tr, :, :);
-    pkrep(r,:) = getPK(E_temp, n0S, idx_pref(tr), idx_anti(tr));
+    pkrep(r,:) = PKbyRalf(E_temp, n0S, idx_pref(tr), idx_anti(tr));
     logregrep(r,:) = getPKbyLogReg(E_temp, n0S, ch(tr));
 end
 err_pk = std(pkrep,[],1);
