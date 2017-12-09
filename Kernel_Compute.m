@@ -241,6 +241,7 @@ if discretize_flag==1
     for n = 1:nsplit
         subplot(1,nsplit+1,n)
         imagesc(1:size(pkt{nsplit-n+1},2),binval, pkt{nsplit-n+1})
+        colormap(copper)
         clim(n,:) = caxis;
     end
     crange = [min(clim(:)) max(clim(:))]
