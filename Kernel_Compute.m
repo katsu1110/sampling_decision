@@ -1,4 +1,10 @@
 function Kernel_Compute(E, varargin)
+%% 
+% compute psychophysical kernel based on the output structure
+%
+%
+% written by Katsuhisa (11.10.17)
+% +++++++++++++++++++++++++++++++++++++
 
 nsplit = 2;
 cuttime = size(E.O, 3);
@@ -235,17 +241,41 @@ if save_flag==1
 end
 
 if discretize_flag==1
-    figure;
-    clim = nan(nsplit, 2);
     binval = [-pi/2, -3*pi/8, 0, pi/8, pi/4, 3*pi/8, pi/2, 7*pi/8, pi];
+    figure;
+    subplot(1,2,1)    
+    [trpk] = getDKernel(E, ch);
+    c = caxis;
+    imagesc(stime, binval, trpk)
+    colormap(copper)
+    title(c)
+    set(gca, 'box', 'off'); set(gca, 'TickDir', 'out')
+    set(gca, 'YTick',[-0.4 2],'YTickLabel',{'0','\pi/2'})
+    subplot(1,2,2)
+    stime = 1:length(pk0);
+    plot([0.5 length(pk0)+0.5],[0 0], ':k')
+    hold on;
+    if resampling_flag==1
+         fill_between(stime,(pk0' - err_pk)/mean(pk0), (pk0' + err_pk)/mean(pk0), [0 0 0]);
+         hold on;
+    end
+    plot(stime, pk0/mean(pk0), '-k')
+    xlim([0.5 length(pk0)+0.5])
+    xlabel('time')
+    ylabel('PK')
+    set(gca, 'box', 'off'); set(gca, 'TickDir', 'out')
+
+    figure;
+    clim = nan(nsplit, 2);    
     for n = 1:nsplit
         subplot(1,nsplit+1,n)
         imagesc(1:size(pkt{nsplit-n+1},2),binval, pkt{nsplit-n+1})
         clim(n,:) = caxis;
     end
-    crange = [min(clim(:)) max(clim(:))]
+    crange = [min(clim(:)) max(clim(:))];
     for n = 1:nsplit
         subplot(1,nsplit+1,n)
+        colormap(copper)
         caxis(crange);
         set(gca, 'YTick',[-0.4 2],'YTickLabel',{'0','\pi/2'})
     end
@@ -267,6 +297,7 @@ if discretize_flag==1
     ylim(yy)
     xlabel('time')
     ylabel('PK')
+    title(crange)
     set(gca, 'box', 'off'); set(gca, 'TickDir', 'out')
 end
 
