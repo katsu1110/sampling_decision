@@ -303,11 +303,11 @@ end
 
 %%
 function [pk] = getPK(E, n0S, idx_pref, idx_anti,discretized)
-if discretized==1
-    [pk] = PKbyHN(E, n0S, idx_pref, idx_anti);
-else
+% if discretized==1
+%     [pk] = PKbyHN(E, n0S, idx_pref, idx_anti);
+% else
     [pk] = PKbyRalf(E, n0S, idx_pref, idx_anti);
-end
+% end
 
 function [pk] = PKbyHN(E, n0S, idx_pref, idx_anti)
 % assuiming discretized stimulus
