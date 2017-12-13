@@ -12,6 +12,7 @@ resampling_flag = 0;
 bound_flag = 0;
 discretize_flag = 0;
 save_flag = 0;
+binsize = 1;
 
 close all;
 j = 1;              
@@ -30,7 +31,7 @@ while  j <= length(varargin)
             bound_flag = 1;
             j = j + 1;
         case 'nbin'
-            nbin = varargin{j+1};
+            binsize = varargin{j+1};
             j = j + 2;
         case 'discretize'
             discretize_flag = 1;
@@ -88,8 +89,8 @@ if bound_flag == 1
     end
 end
 
-% add noise
-conf = conf + normrnd(median(conf), 0.2*median(conf), size(conf));
+% % add noise
+% conf = conf + normrnd(median(conf), 0.1*median(conf), size(conf));
 
 %%
 % confidence
@@ -132,7 +133,7 @@ for n = 2:nsplit+1
     idx = conf >= pivot(n-1) & conf < pivot(n);
     E_temp.Signal = E_temp.Signal(idx, :, :);
     E_temp.O = E_temp.O(idx, :, :);
-    PK_normal(n-1,:) = getPK(E_temp, n0S, idx_pref(idx), idx_anti(idx),discretize_flag);
+    PK_normal(n-1,:) = getPK(E_temp, n0S, idx_pref(idx), idx_anti(idx));
 %     PK_logreg(n-1,:) = getPKbyLogReg(E_temp, n0S, ch(idx));
     if discretize_flag == 1
         [pkt{n-1}] = getDKernel(E_temp, ch(idx));
@@ -179,7 +180,7 @@ set(gca, 'box', 'off'); set(gca, 'TickDir', 'out')
 %%
 % debug PK
 subplot(2,4,[5 6])
-pk0 = getPK(E, n0S,  idx_pref, idx_anti, discretize_flag);
+pk0 = getPK(E, n0S,  idx_pref, idx_anti);
 % pk1 = getPKbyLogReg(E, n0S, ch);
 stime = 1:length(pk0);
 plot([0.5 length(pk0)+0.5],[0 0], ':k')
@@ -208,7 +209,7 @@ catch
 end
 plot([0.5 length(pk0)+0.5],[0 0], ':k')
 hold on;
-for n = 1:nsplit
+for n = 1:nsplit    
     if resampling_flag==1
         fill_between(stime, (PK_normal(n,:) - serr_pk(n,:))/mean(PK_normal(:)), ...
             (PK_normal(n,:) + serr_pk(n,:))/mean(PK_normal(:)), col(n,:))
@@ -240,26 +241,30 @@ if save_flag==1
     print(h,'-dpdf',[savedir figname],sprintf('-r%d',180))
 end
 
+% for the paper
 if discretize_flag==1
     binval = [-pi/2, -3*pi/8, 0, pi/8, pi/4, 3*pi/8, pi/2, 7*pi/8, pi];
     figure;
     subplot(1,2,1)    
     [trpk] = getDKernel(E, ch);
+    trpk = binPK(trpk, binsize);
     c = caxis;
-    imagesc(stime, binval, trpk)
+    imagesc(1:binsize, binval, trpk/max(trpk(:)))
     colormap(copper)
     title(c)
     set(gca, 'box', 'off'); set(gca, 'TickDir', 'out')
     set(gca, 'YTick',[-0.4 2],'YTickLabel',{'0','\pi/2'})
     subplot(1,2,2)
-    stime = 1:length(pk0);
+%     stime = 1:length(pk0);
     plot([0.5 length(pk0)+0.5],[0 0], ':k')
     hold on;
+    pk0 = justbin(pk0', binsize);
     if resampling_flag==1
-         fill_between(stime,(pk0' - err_pk)/mean(pk0), (pk0' + err_pk)/mean(pk0), [0 0 0]);
+         err_pk = justbin(err_pk, binsize);
+         fill_between(1:binsize,(pk0' - err_pk)/mean(pk0), (pk0' + err_pk)/mean(pk0), [0 0 0]);
          hold on;
     end
-    plot(stime, pk0/mean(pk0), '-k')
+    plot(1:binsize, pk0/mean(pk0), '-k')
     xlim([0.5 length(pk0)+0.5])
     xlabel('time')
     ylabel('PK')
@@ -267,29 +272,43 @@ if discretize_flag==1
 
     figure;
     clim = nan(nsplit, 2);    
+    vlim = nan(nsplit, 1);    
     for n = 1:nsplit
         subplot(1,nsplit+1,n)
-        imagesc(1:size(pkt{nsplit-n+1},2),binval, pkt{nsplit-n+1})
+        [pkt{nsplit-n+1}] = binPK(pkt{nsplit-n+1}, binsize);
+        vlim(n) = max(pkt{nsplit-n+1}(:));
+    end
+    for n = 1:nsplit
+        subplot(1,nsplit+1,n)
+        imagesc(1:size(pkt{nsplit-n+1},2),binval, pkt{nsplit-n+1}/max(vlim))
+        colormap(copper)
         clim(n,:) = caxis;
+        set(gca, 'YTick',[-0.4 2],'YTickLabel',{'0','\pi/2'})
     end
     crange = [min(clim(:)) max(clim(:))];
     for n = 1:nsplit
-        subplot(1,nsplit+1,n)
-        colormap(copper)
-        caxis(crange);
-        set(gca, 'YTick',[-0.4 2],'YTickLabel',{'0','\pi/2'})
+        subplot(1, nsplit+1, n)
+        caxis(crange)
     end
 
     subplot(1,nsplit+1,nsplit+1)
-    plot([0.5 length(pk0)+0.5],[0 0], ':k')
+%     plot([0.5 length(pk0)+0.5],[0 0], ':k')
     hold on;
+    PK_normal_bin = nan(nsplit, binsize);
+    serr_pk_bin = nan(nsplit, binsize);
+    for n = 1:nsplit
+        PK_normal_bin(n,:) = justbin(PK_normal(n,:), binsize);
+        serr_pk_bin(n,:) = justbin(serr_pk(n,:), binsize);
+    end
+    norm = mean(PK_normal_bin(:)); 
     for n = 1:nsplit
         if resampling_flag==1
-            fill_between(stime, (PK_normal(n,:) - serr_pk(n,:))/mean(PK_normal(:)), ...
-                (PK_normal(n,:) + serr_pk(n,:))/mean(PK_normal(:)), col(n,:))
+            fill_between(1:binsize, ...
+                (PK_normal_bin(n,:) - serr_pk_bin(n,:))/norm, ...
+                (PK_normal_bin(n,:) + serr_pk_bin(n,:))/norm, col(n,:))
             hold on;
         end
-        plot(stime, PK_normal(n,:)/mean(PK_normal(:)), '-','color',col(n,:),'linewidth',1)
+        plot(1:binsize, PK_normal_bin/norm, '-','color',col(n,:),'linewidth',1)
         hold on;
     end
     yy = get(gca, 'YLim');
@@ -302,7 +321,7 @@ if discretize_flag==1
 end
 
 %%
-function [pk] = getPK(E, n0S, idx_pref, idx_anti,discretized)
+function [pk] = getPK(E, n0S, idx_pref, idx_anti)
 % if discretized==1
 %     [pk] = PKbyHN(E, n0S, idx_pref, idx_anti);
 % else
@@ -417,6 +436,22 @@ err_logreg = std(logregrep, [], 1);
 %     begin = begin + frameperbin;
 % end
 
+function [binned] = justbin(v, binsize)
+frameperbin = floor(length(v)/binsize);
+begin = 1;
+binned = nan(1, binsize);
+for b = 1:binsize
+    binned(b) = nanmean(v(begin:begin+frameperbin-1));
+    begin = begin + frameperbin;
+end
+
+function [pktbin] = binPK(pkt, binsize)
+if binsize > 1
+    pktbin = nan(size(pkt,1), binsize);
+    for r = 1:size(pkt,1)
+        pktbin(r,:) = justbin(pkt(r,:), binsize);
+    end
+end
 
 function [pkt] = getDKernel(E, ch)
 try
