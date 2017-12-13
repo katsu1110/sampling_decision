@@ -446,11 +446,9 @@ for b = 1:binsize
 end
 
 function [pktbin] = binPK(pkt, binsize)
-if binsize > 1
-    pktbin = nan(size(pkt,1), binsize);
-    for r = 1:size(pkt,1)
-        pktbin(r,:) = justbin(pkt(r,:), binsize);
-    end
+pktbin = nan(size(pkt,1), binsize);
+for r = 1:size(pkt,1)
+    pktbin(r,:) = justbin(pkt(r,:), binsize);
 end
 
 function [pkt] = getDKernel(E, ch)
