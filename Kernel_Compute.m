@@ -54,7 +54,8 @@ catch
 end
 
 % % log-odds
-% conf_proxy = squeeze(diff(log(E.O(1:size(E.O,1),2:3,:)),[],2));
+logodds = squeeze(diff(log(E.O(1:size(E.O,1),2:3,:)),[],2));
+conf = abs(logodds(:,cuttime));
 
 % choice
 ch = E.O(:,1,end) - 1;
@@ -65,7 +66,7 @@ dt = size(E.O,3)*ones(size(E.O,1),1);
 
 % posterior
 pos = squeeze(E.O(1:size(E.O,1),2,:));
-conf = abs(pos(:,cuttime) - 0.5) + 0.5;
+% conf = abs(pos(:,cuttime) - 0.5) + 0.5;
 idx_pref= E.O(:,2, cuttime)>0.5;
 idx_anti= E.O(:,3, cuttime)>0.5;
 
@@ -146,40 +147,53 @@ end
 %%
 % debug posterior
 h = figure;
-subplot(2,4,1)
+subplot(2,3,1)
 imagesc(pos)
 colorbar
 xlabel('time')
 ylabel('trials')
 title('posterior')
 set(gca, 'box', 'off'); set(gca, 'TickDir', 'out')
-subplot(2,4,2)
+subplot(2,3,2)
 rng(1220);
-plot(pos(randi([1, size(E.Signal, 1)], 100, 1),:)')
+rtr = randi([1, size(E.Signal, 1)], 100, 1);
+plot(pos(rtr,:)')
 hold on;
 plot(cuttime*[1 1], [0 1], '--k')
 xlabel('time')
 ylabel('trials')
-title('posterior')
 set(gca, 'box', 'off'); set(gca, 'TickDir', 'out')
-subplot(2,4,3)
+subplot(2,3,3)
 histogram(pos(:,cuttime))
 xlabel(['posterior at time: ' num2str(cuttime)])
 ylabel('trials')
 set(gca, 'box', 'off'); set(gca, 'TickDir', 'out')
-subplot(2,4,4)
-histogram(conf)
+subplot(2,3,4)
+imagesc(logodds)
+colorbar
+xlabel('time')
+ylabel('trials')
+title('log-odds ratio')
+set(gca, 'box', 'off'); set(gca, 'TickDir', 'out')
+subplot(2,3,5)
+rng(1220);
+plot(logodds(rtr,:)')
 hold on;
-yy = get(gca, 'YLim');
-plot(median(conf)*[1 1], yy, '-r')
-ylim(yy)
-xlabel('confidence')
+plot(cuttime*[1 1], [0 1], '--k')
+xlabel('time')
+ylabel('trials')
+set(gca, 'box', 'off'); set(gca, 'TickDir', 'out')
+subplot(2,3,6)
+histogram(logodds(:,cuttime))
+xlabel(['LOR at time: ' num2str(cuttime)])
 ylabel('trials')
 set(gca, 'box', 'off'); set(gca, 'TickDir', 'out')
 
+
 %%
 % debug PK
-subplot(2,4,[5 6])
+h = figure;
+subplot(1,2,1)
 pk0 = getPK(E, n0S,  idx_pref, idx_anti);
 % pk1 = getPKbyLogReg(E, n0S, ch);
 stime = 1:length(pk0);
@@ -201,7 +215,7 @@ xlabel('time')
 ylabel('PK')
 set(gca, 'box', 'off'); set(gca, 'TickDir', 'out')
 
-subplot(2,4,[7 8])
+subplot(1,2,2)
 try
     access = E.Sampling.access;
 catch
