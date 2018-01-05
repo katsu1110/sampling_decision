@@ -1,4 +1,4 @@
-function [PKS, pk0] = Kernel_Compute(E, varargin)
+function [PK_normal, pk0] = Kernel_Compute(E, varargin)
 %% 
 % compute psychophysical kernel based on the output structure
 %
@@ -84,6 +84,9 @@ conf = abs(logodds(:,cuttime));
 
 % choice
 ch = E.O(:,1,cuttime) - 1;
+
+% Neuron updates
+disp(['neural resolution: ' E,Projection
 
 % decision time
 % dt = cuttime;
@@ -226,7 +229,6 @@ if binsize > 0
     pk0 = justbin(pk0', binsize);
     stime = 1:binsize;
 else
-    pk0 = pk0';
     stime = 1:length(pk0);
 end
 plot([0.5 stime(end)+0.5],[0 0], ':k')
@@ -256,8 +258,6 @@ try
 catch
     access = E.access;
 end
-% Neuron updates
-disp(['neural resolution: ' num2str(access(cuttime)-2)])
 plot([0.5 stime(end)+0.5],[0 0], ':k')
 hold on;
 PKS = [];
@@ -268,13 +268,11 @@ for n = 1:nsplit
     else
         PKAc = PK_normal(n,:);
     end
-    PKS = [PKS; PKAc];
     if repeat > 0
         if binsize > 0
             serr_pkac = justbin(serr_pk(n,:), binsize);
-        else
-            serr_pkac = serr_pk(n,:);
-        end   
+        end        
+        PKS = [PKS; PKAc];
         PKS_err = [PKS_err; serr_pkac];
         fill_between(stime, (PKAc - serr_pkac)/max(pk0), ...
             (PKAc + serr_pkac)/max(pk0), col(n,:))
@@ -297,7 +295,7 @@ ylabel('PK')
 set(gca, 'box', 'off'); set(gca, 'TickDir', 'out')
 if repeat > 0
     pk0 = [pk0; err_pk];
-    PKS = [PKS; PKS_err];
+    PK_normal = [PKS; PKS_err];
 end
 
 % figure name
@@ -312,7 +310,6 @@ end
 
 % for the paper
 if discretize_flag==1
-    % assume binsize > 0
     binval = [-pi/2, -3*pi/8, 0, pi/8, pi/4, 3*pi/8, pi/2, 7*pi/8, pi];
     figure;
     subplot(1,2,1)    
@@ -320,7 +317,7 @@ if discretize_flag==1
     trpk = binPK(trpk, binsize);
     c = caxis;
     imagesc(1:binsize, binval, trpk/max(trpk(:)))
-    colormap(gca,copper)
+    colormap(copper)
     title(c)
     set(gca, 'box', 'off'); set(gca, 'TickDir', 'out')
     set(gca, 'YTick',[-0.4 2],'YTickLabel',{'0','\pi/2'})
@@ -328,13 +325,13 @@ if discretize_flag==1
 %     stime = 1:length(pk0);
     plot([0.5 length(pk0)+0.5],[0 0], ':k')
     hold on;
-%     pk0 = justbin(pk0', binsize);
+    pk0 = justbin(pk0', binsize);
     if repeat > 0
-%          err_pk = justbin(err_pk, binsize);
-         fill_between(1:binsize,(pk0 - err_pk)/mean(pk0), (pk0 + err_pk)/mean(pk0), [0 0 0]);
+         err_pk = justbin(err_pk, binsize);
+         fill_between(1:binsize,(pk0' - err_pk)/mean(pk0), (pk0' + err_pk)/mean(pk0), [0 0 0]);
          hold on;
     end
-    plot(1:binsize, pk0/max(pk0), '-k')
+    plot(1:binsize, pk0/mean(pk0), '-k')
     xlim([0.5 length(pk0)+0.5])
     xlabel('time')
     ylabel('PK')
@@ -351,7 +348,7 @@ if discretize_flag==1
     for n = 1:nsplit
         subplot(1,nsplit+1,n)
         imagesc(1:size(pkt{nsplit-n+1},2),binval, pkt{nsplit-n+1}/max(vlim))
-        colormap(gca,copper)
+        colormap(copper)
         clim(n,:) = caxis;
         set(gca, 'YTick',[-0.4 2],'YTickLabel',{'0','\pi/2'})
     end
@@ -398,41 +395,41 @@ function [pk] = getPK(E, n0S, idx_pref, idx_anti)
     [pk] = PKbyRalf(E, n0S, idx_pref, idx_anti);
 % end
 
-% function [pk] = PKbyHN(E, n0S, idx_pref, idx_anti)
-% % assuiming discretized stimulus
-% % the number of V1 neurons
-% try
-%     nX =  size(E.X, 2);
-% catch
-%     nX = E.nv1;
-% end
-% % O_pref=1;
-% len_frame = size(E.Signal,3);
-% ixp=1; ixa=1+nX/2;
-% disval_p = unique(squeeze(E.Signal(:,ixp,:)));
-% disval_a = unique(squeeze(E.Signal(:,ixa,:)));
-% lendp = length(disval_p);
-% lenda = length(disval_a);
-% stmmat_pp = zeros(len_frame,lendp);
-% stmmat_pa = zeros(len_frame,lendp);
-% stmmat_ap = zeros(len_frame,lenda);
-% stmmat_aa = zeros(len_frame,lenda);
-% for f = 1:len_frame
-%     for d = 1:lendp
-%         stmmat_pp(f,d) = sum(E.Signal(idx_pref,ixp,f)==disval_p(d));
-%         stmmat_pa(f,d) = sum(E.Signal(idx_anti,ixp,f)==disval_p(d));
-%     end
-%     for d = 1:lenda
-%         stmmat_ap(f,d) = sum(E.Signal(idx_anti,ixa,f)==disval_a(d));
-%         stmmat_aa(f,d) = sum(E.Signal(idx_pref,ixa,f)==disval_a(d));
-%     end
-% end
-% trpk = stmmat_pp - stmmat_pa + stmmat_ap - stmmat_aa;
-% trpk = trpk(n0S+2:end,:);
-% pk = zeros(1,size(trpk,1));
-% for f = 1:size(trpk,1)
-%     pk(f) = trpk(f,:)*mean(trpk,1)';
-% end    
+function [pk] = PKbyHN(E, n0S, idx_pref, idx_anti)
+% assuiming discretized stimulus
+% the number of V1 neurons
+try
+    nX =  size(E.X, 2);
+catch
+    nX = E.nv1;
+end
+% O_pref=1;
+len_frame = size(E.Signal,3);
+ixp=1; ixa=1+nX/2;
+disval_p = unique(squeeze(E.Signal(:,ixp,:)));
+disval_a = unique(squeeze(E.Signal(:,ixa,:)));
+lendp = length(disval_p);
+lenda = length(disval_a);
+stmmat_pp = zeros(len_frame,lendp);
+stmmat_pa = zeros(len_frame,lendp);
+stmmat_ap = zeros(len_frame,lenda);
+stmmat_aa = zeros(len_frame,lenda);
+for f = 1:len_frame
+    for d = 1:lendp
+        stmmat_pp(f,d) = sum(E.Signal(idx_pref,ixp,f)==disval_p(d));
+        stmmat_pa(f,d) = sum(E.Signal(idx_anti,ixp,f)==disval_p(d));
+    end
+    for d = 1:lenda
+        stmmat_ap(f,d) = sum(E.Signal(idx_anti,ixa,f)==disval_a(d));
+        stmmat_aa(f,d) = sum(E.Signal(idx_pref,ixa,f)==disval_a(d));
+    end
+end
+trpk = stmmat_pp - stmmat_pa + stmmat_ap - stmmat_aa;
+trpk = trpk(n0S+2:end,:);
+pk = zeros(1,size(trpk,1));
+for f = 1:size(trpk,1)
+    pk(f) = trpk(f,:)*mean(trpk,1)';
+end    
 
 
 function [pk] = PKbyRalf(E, n0S, idx_pref, idx_anti)
