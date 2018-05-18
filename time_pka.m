@@ -1,4 +1,6 @@
 function [tpka] = time_pka(E, nbin, plot_flag, repeat, type)
+% explore how extending the trial duration affects the time-evolution of
+% the PKA
 
 if nargin<2
     nbin = 4;

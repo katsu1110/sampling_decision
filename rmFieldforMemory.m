@@ -1,4 +1,6 @@
 function out = rmFieldforMemory(out)
+% remove some irrelevant fields from the output structure 
+% for more simulations
 
 % get info
 out.ntr = size(out.Signal, 1);

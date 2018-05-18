@@ -1,8 +1,5 @@
 function E = trcut(E, cuttime)
-%% cut trials
-%
-% written by Katsuhisa (07.11.17)
-% +++++++++++++++++++++++++++++++++
+% cut trials into arbitrary trial duration
 
 % for PK analysis the following should be fine
 try

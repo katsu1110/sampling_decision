@@ -1,4 +1,5 @@
 function explore_tpka(tpka)
+% visualize results from 'time_pka.m'
 
 close all;
 h = figure;

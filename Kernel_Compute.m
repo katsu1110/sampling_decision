@@ -47,12 +47,7 @@ while  j <= length(varargin)
 end
 
 if zerotr_flag==1
-%     msig = mean(squeeze(E.Signal(:,1,:)),2);
-%     msig = zscore(msig);
-%     cutoff = 0.25;
-%     E.Signal = E.Signal(abs(msig) < cutoff, :, :);
-%     E.O = E.O(abs(msig) < cutoff, :, :);
-%     disp(['....only ' num2str(sum(abs(msig)<cutoff)) ' trials were used.'])
+    % select very noisy trials
     sigv = squeeze(E.Signal(:,1,:));
     sigv = sigv(:);
     zsig = reshape(zscore(sigv), size(E.Signal, 3), size(E.Signal, 1))';
@@ -68,6 +63,7 @@ if zerotr_flag==1
 end
 
 if discretize_flag==1
+    % discretize stimulus
     E = discretize_signal(E);
 end
 
@@ -78,7 +74,7 @@ catch
     n0S = E.n0S;
 end
 
-% % log-odds
+% log-odds
 logodds = squeeze(diff(log(E.O(1:size(E.O,1),2:3,:)),[],2));
 conf = abs(logodds(:,cuttime));
 
@@ -86,7 +82,6 @@ conf = abs(logodds(:,cuttime));
 ch = E.O(:,1,cuttime) - 1;
 
 % decision time
-% dt = cuttime;
 dt = size(E.O,3)*ones(size(E.O,1),1);
 
 % posterior
@@ -97,6 +92,7 @@ idx_anti= E.O(:,3, cuttime)>0.5;
 
 % decision bound
 if bound_flag == 1
+    % implementing decision bound
     nframe = size(E.O,3);
     for n = 1:size(E.O,1)
         dt_temp = find(abs(E.O(n,2,:)-0.5)+0.5 > 0.7, 1, 'first');

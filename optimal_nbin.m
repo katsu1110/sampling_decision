@@ -1,4 +1,5 @@
-function [tpka] = optimal_nbin(E)
+function tpka = optimal_nbin(E)
+% visualize how the number of time bins change PKA
 
 nbins = [3,4,5,6];
 for n = 1:length(nbins)

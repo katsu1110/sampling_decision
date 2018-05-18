@@ -1,5 +1,7 @@
 function plot_grid_ralf
+% explore time x signal strength 
 
+% local path
 load('/gpfs01/nienborg/group/Katsuhisa/pupil_project/Figures/Figure6_GridSearch/data/ralf.mat')
 
 co = arrayfun(@(x) x.contrast, ralf.colevel);
@@ -16,5 +18,4 @@ ylabel('signal strength')
 set(gca, 'box', 'off'); set(gca, 'TickDir', 'out')
 colormap(jet)
 colorbar
-savefig('/gpfs01/nienborg/group/Katsuhisa/pupil_project/Figures/Figure6_GridSearch/raw_figs/ralf_grid.fig')
- 
+savefig('/gpfs01/nienborg/group/Katsuhisa/pupil_project/Figures/Figure6_GridSearch/raw_figs/ralf_grid.fig') 
