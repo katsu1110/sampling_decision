@@ -27,7 +27,7 @@ while  j <= length(varargin)
             j = j + 1;
         case 'cfnoise'
             cfnoise  = varargin{j+1};
-            j = j + 1;
+            j = j + 2;
         case 'cuttime' 
             cuttime = varargin{j+1};
             j = j + 2;
