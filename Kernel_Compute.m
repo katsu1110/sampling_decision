@@ -1,13 +1,13 @@
 function [PKS, pk0] = Kernel_Compute(E, varargin)
 %% 
 % compute psychophysical kernel based on the output structure
+% from 'S_Experiment.m'
 %
-%
-% written by Katsuhisa (11.10.17)
-% +++++++++++++++++++++++++++++++++++++
+
 
 nsplit = 2;
 cuttime = size(E.O, 3);
+cfnoise = 0;
 repeat = 0;
 bound_flag = 0;
 zerotr_flag = 0;
@@ -24,6 +24,9 @@ while  j <= length(varargin)
             j = j + 2;
         case 'zero'
             zerotr_flag = 1;
+            j = j + 1;
+        case 'cfnoise'
+            cfnoise  = varargin{j+1};
             j = j + 1;
         case 'cuttime' 
             cuttime = varargin{j+1};
@@ -111,8 +114,8 @@ if bound_flag == 1
     end
 end
 
-% % add noise
-% conf = conf + normrnd(median(conf), 0.1*median(conf), size(conf));
+% add noise
+conf = conf + normrnd(0, cfnoise*std(conf), size(conf));
 
 %%
 % confidence
